@@ -22,7 +22,24 @@
 
 
     <body>
-      <p> <img src="best_robot.jpeg" alt="a robot with Skynet" title="I will destroy you !" /> </p>
+        <img onclick="change();" id="myImage" src="best_robot.jpeg" alt="a robot with Skynet" title="I will destroy you !" />
+        <script type="text/javascript">
+          var count = 0
+          var test = 0
+          function change(){
+            if (test==0) {
+              document.getElementById('myImage').src="best_robot2.jpeg";
+              test = 1;
+              count++;
+            }
+            else{
+              document.getElementById('myImage').src="best_robot.jpeg";
+              test = 0;
+              count++;
+            }
+          }
+      </script>
+
         <p> Ok Test </p>
         <p> test link : <a href="index.html"> TEST!</a> </p>
 
