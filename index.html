@@ -3,36 +3,97 @@
 <html>
 
     <head>
-
+        <link rel="stylesheet" href="/style.css" type="text/css" />
         <meta charset="utf-8" />
+        <meta name="description" content="">
+        <meta http-equiv="cache-control" content="max-age=86400" />
         <title>Test</title>
-        <style type="text/css">
-          ul.navbar {
-            position: absolute;
-            top: 2em;
-            left: 1em;
-            width: 9em
+        <style>
+          div.container {
+              width: 100%;
+              border: 1px solid gray;
+              background-color:  #c9c7ff ;
+
+          }
+
+          header, footer {
+              padding: 1em;
+              color: #ffe48f;
+              background-color:  #c9c7ff ;
+              clear: left;
+              text-align: center;
+          }
+
+          nav {
+              float: left;
+              max-width: 300px;
+              margin: 0;
+              padding: 2em;
+              background-color:  #c9c7ff ;
+          }
+
+          nav ul {
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+            width: 200px;
+            background-color: #f1f1f1;
+          }
+          li a {
+            display: block;
+            padding: 0 8px 16px;
+            text-decoration: none;
+          }
+          li a.active {
+            background-color: #ffe48f;
+          }
+          li a:hover:not(.active) {
+            background-color: #555;
+            color: white;
+          }
+
+          article {
+              <!--margin-left: 170px;-->
+              border-left: 1px solid gray;
+              padding: 1em;
+              overflow: hidden;
+              background-color:  white;
           }
         </style>
-
     </head>
 
-
     <body>
-        <!-- test -->
-        <center>
-          <img src="jump4.jpg" alt="flying body over the wheat field" />
 
-          <table style="width:80%">
+      <div class="Container">
 
-           <th><a href="page1.html"> Research</a></th> <th><a href="page1.html"> News</a></th>
-            <th><a href="page1.html"> Publications</a></th> <th><a href="page1.html"> Side-projects</a></th>
-            <th><a href="page1.html"> Painting </a></th> <th><a href="page1.html"> Haikus</a></th>
-          </table>
+        <header>
+            <img src="jump4.jpg" alt="flying body over the wheat field" />
+        </header>
 
-        </center>
+        <nav>
 
+          <ul>
+            <center><h4>Menu</h4></center>
+            <li><a class="active" href="index.html"> Home</a></li>
+            <li><a href="page1.html"> Research</a></li>
+            <li><a href="page1.html"> News</a></li>
+            <li><a href="page1.html"> Publications</a></li>
+            <li><a href="page1.html"> Side-projects</a></li>
+            <li><a href="https://github.com/alexis-jacq" target="_blank"> Github  </a></li>
+            <li><a href="page1.html"> Haikus</a></li>
+            <li><a href="page1.html"> Painting </a></li>
+            <li><a href="page1.html"> cool links </a></li>
+          </ul>
+        </nav>
 
-    </body>
+        <article>
+          <p><h2> About content </h2></p>
+          <p style="width:75%"> This website has two functions: to <strong> sell myself</strong> for academic reasons and to <strong>share some ideas, fun stuff and passions</strong>. As any living system I have to show my potential. If it disserves to be known and used, let me be glade as a copulating butterfly with cool spots DNA.</p>
+        </article>
+
+        <footer></footer>
+      </div>
+
+  </body>
 
 </html>
