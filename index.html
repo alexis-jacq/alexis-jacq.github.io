@@ -82,7 +82,7 @@
             <li><a href="https://github.com/alexis-jacq" target="_blank"> Github  </a></li>
             <li><a href="page1.html"> Haikus</a></li>
             <li><a href="page1.html"> Painting </a></li>
-            <li><a href="test.shtml"> cool links </a></li>
+            <li><a href="page1.html"> cool links </a></li>
           </ul>
         </nav>
 
@@ -108,7 +108,20 @@
           </script>
         </article>
 
-        <footer></footer>
+        <footer>
+          <script type="application/javascript">
+            function getIP(json) {
+               console.log(json.ip);
+                  mixpanel.identify( json.ip );
+                  mixpanel.people.set({
+                      "$first_name": json.ip ,
+                      "$ip": json.ip,
+                  });
+                  mixpanel.track("{{page.title}}");
+            }
+          </script>
+          <script type="application/javascript" src="https://api.ipify.org?format=jsonp&callback=getIP"></script>
+        </footer>
       </div>
 
   </body>
