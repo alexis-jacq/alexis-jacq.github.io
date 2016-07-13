@@ -102,26 +102,13 @@
           var currenthits=counterdate.getTime().toString()
           currenthits=parseInt(currenthits.substring(2,currenthits.length-4))+decrease_increase
 
-          document.write("# visitors: <b>"+currenthits+"</b>")
+          document.write("(# visitors: <b>"+currenthits+"</b>)")
           }
           fakecounter()
           </script>
         </article>
 
         <footer>
-          <script type="application/javascript">
-            function getIP(json) {
-               console.log(json.ip);
-                  mixpanel.identify( json.ip );
-                  mixpanel.people.set({
-                      "$first_name": json.ip ,
-                      "$ip": json.ip,
-                  });
-                  mixpanel.track("{{page.title}}");
-                  document.write(json.ip)
-            }
-          </script>
-          <script type="application/javascript" src="https://api.ipify.org?format=jsonp&callback=getIP"></script>
         </footer>
       </div>
 
