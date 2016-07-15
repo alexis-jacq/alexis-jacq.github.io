@@ -59,7 +59,109 @@
             overflow: hidden;
             background-color:  white;
           }
+          /*MOUSE FOLLOWER*/
+          /* The "stage" */
+          div#stage{
+          position: relative; /* necessary to do absolute positioning of the image relative to this div's position */
+          overflow: hidden;  /* hide the image when it is off the stage */
+
+          /* set div's size and layout */
+          width: 1822px;
+          height: 284px;
+          margin: 0 auto;
+          background-image: url("larger.png");
+          /* put a border around it so we can see where it ends */
+          border: 1px solid #ccc;
+          }
+          /* The image that is following the mouse */
+          img#follower1{ position: absolute; }
+          img#follower2{ position: absolute; }
+          img#follower3{ position: absolute; }
+          img#follower4{ position: absolute; }
         </style>
+        <script type="text/javascript" src="jquery-1.4.2.min.js"></script>
+        <script type="text/javascript">
+          // Set up a 30 Hz frame rate
+          frameRate    =  30;
+          timeInterval = Math.round( 1000 / frameRate );
+          relMouseX    = -20;
+          relMouseY    = -20;
+          // butterfly:
+          up = 1;
+          right = 1;
+
+          $(document).ready( function () {
+            // get the stage offset
+            offset = $('#stage').offset();
+
+            // start calling animateFollower at the 'timeInterval' we calculated above
+            atimer = setInterval( "animateFollower()", timeInterval );
+          } );
+
+          // track and save the position of the mouse
+          $(document).mousemove( function(e) {
+            mouseX = e.pageX;
+            mouseY = e.pageY;
+            relMouseX = relMouseX + 0.05*(mouseX - offset.left - relMouseX);
+            relMouseY = relMouseY + 0.05*(mouseY - offset.top - relMouseY);
+            if (mouseX - offset.left - relMouseX < 0){
+              right = 1;
+            }
+            else{right = 0;}
+
+            // display the current mouse positions
+            $('#mouse_x-trace').text( mouseX );
+            $('#mouse_y-trace').text( mouseY );
+          } );
+
+          // move the image where the mouse is
+          // this function is called by the setInterval command above to run
+          // at a rate of 30 frames per second
+          function animateFollower() {
+            if (right==0){
+              if (up<5 && up>0 ){
+                $('#follower1').css('left', relMouseX);
+                $('#follower1').css('top', relMouseY-10);
+
+                $('#follower2').css('left', -1000);
+                $('#follower3').css('left', -1000);
+                $('#follower4').css('left', -1000);
+                up++;
+              }
+              else{
+                $('#follower2').css('left', relMouseX);
+                $('#follower2').css('top', relMouseY+10);
+
+                $('#follower1').css('left', -1000);
+                $('#follower3').css('left', -1000);
+                $('#follower4').css('left', -1000);
+                if (up>0){up=-2;}
+                else{up++;}
+              }
+            }
+            else{
+              if (up<5 && up>0 ){
+                $('#follower3').css('left', relMouseX);
+                $('#follower3').css('top', relMouseY-10);
+
+                $('#follower2').css('left', -1000);
+                $('#follower1').css('left', -1000);
+                $('#follower4').css('left', -1000);
+                up++;
+              }
+              else{
+                $('#follower4').css('left', relMouseX);
+                $('#follower4').css('top', relMouseY+10);
+
+                $('#follower2').css('left', -1000);
+                $('#follower3').css('left', -1000);
+                $('#follower1').css('left', -1000);
+                if (up>0){up=-2;}
+                else{up++;}
+              }
+            }
+          }
+        </script>
     </head>
 
     <body bgcolor= "#c9c7ff">
@@ -67,7 +169,13 @@
       <div class="Container">
 
         <header>
-            <img src="larger.png" alt="flying body over the wheat field" style="width:100%" />
+            <!--<img src="larger.png" alt="flying body over the wheat field" style="width:100%" />-->
+            <div id="stage">
+              <img src="butterfly1.png" id="follower1" alt="Our mouse follower image." />
+              <img src="butterfly2.png" id="follower2" alt="Our mouse follower image." />
+              <img src="butterfly3.png" id="follower3" alt="Our mouse follower image." />
+              <img src="butterfly4.png" id="follower4" alt="Our mouse follower image." />
+            </div>
         </header>
 
         <nav>
