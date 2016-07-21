@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+
+<html dir="ltr" lang="en-US">
+
+<head>
+<title>Mouse Follower Demo</title>
+
+<style type="text/css" media="screen">
+/* basic page layout */
+body{ text-align: center; }
+div#page{ width: 600px; margin: 0 auto; }
+a{ color: #09f; text-decoration: none; }
+
+/* The "stage" */
+div#stage{
+position: relative; /* necessary to do absolute positioning of the image relative to this div's position */
+overflow: hidden;  /* hide the image when it is off the stage */
+
+/* set div's size and layout */
+width: 500px;
+height: 400px;
+margin: 0 auto;
+background-image: url("imgs/festo.jpg");
+
+/* put a border around it so we can see where it ends */
+border: 1px solid #ccc;
+}
+
+/* The image that is following the mouse */
+img#follower{ position: absolute; }
+
+/* Style the mouse x and mouse y position text output */
+div.trace{ color: #999; font-size: 12px; padding: 6px 0; }
+
+/* footer stuff */
+div.foot {
+width: 500px;
+margin: 1.6em auto;
+text-align: left;
+font-size: 12px;
+line-height: 1.6em; }
+
+p.fineprint {
+display: block;
+text-indent: -999px;
+overflow: hidden; }
+
+p.fineprint img.license {
+border: 0;
+float: right; }
+</style>
+
+<script type="text/javascript" src="js/jquery-1.4.2.min.js"></script>
+<script type="text/javascript">
+// Set up a 30 Hz frame rate
+frameRate    =  30;
+timeInterval = Math.round( 1000 / frameRate );
+relMouseX    = 0;
+relMouseY    = 0;
+
+$(document).ready( function () {
+  // get the stage offset
+  offset = $('#stage').offset();
+
+  // start calling animateFollower at the 'timeInterval' we calculated above
+  atimer = setInterval( "animateFollower()", timeInterval );
+} );
+
+// track and save the position of the mouse
+$(document).mousemove( function(e) {
+  mouseX = e.pageX;
+  mouseY = e.pageY;
+  relMouseX = mouseX - offset.left;
+  relMouseY = mouseY - offset.top;
+
+  // display the current mouse positions
+  $('#mouse_x-trace').text( mouseX );
+  $('#mouse_y-trace').text( mouseY );
+} );
+
+// move the image where the mouse is
+// this function is called by the setInterval command above to run
+// at a rate of 30 frames per second
+function animateFollower() {
+  $('#follower').css('left', relMouseX);
+  $('#follower').css('top', relMouseY);
+}
+</script>
+</head>
+
+<body>
+
+<div id="page">
+<h1>Mouse Follower Demo</h1>
+
+<div id="stage">
+<img src="imgs/egg_16_side.png" id="follower" alt="Our mouse follower image." />
+</div>
+
+<!-- Show the mouse position and relative mouse position. -->
+<div class="trace">
+<span class="label">Mouse X: </span>
+<span class="value" id="mouse_x-trace">undefined</span>
+<span class="label">Mouse Y: </span>
+<span class="value" id="mouse_y-trace">undefined</span>
+</div>
+
+</div>
+
+<!-- the fine print -->
+<div class="foot">
+	<p>This demo is brought to you by <a href="http://orangesplotch.com/">orangesplotch.com</a>. Find more fun tutorials and hone your skills at <a href="http://orangesplotch.com/tutorials">http://orangesplotch.com/tutorials</a>.</p>
+
+	<!-- license -->
+
+	<p class="fineprint">
+	<a rel="license" href="http://creativecommons.org/licenses/by-nc/3.0/">
+	<img alt="Creative Commons License" src="http://i.creativecommons.org/l/by-nc/3.0/88x31.png" class="license" />
+	</a>
+	<span xmlns:dc="http://purl.org/dc/elements/1.1/" href="http://purl.org/dc/dcmitype/InteractiveResource" rel="dc:type">work</span> by
+	<a xmlns:cc="http://creativecommons.org/ns#" href="http://orangesplotch.com/tutorials" property="cc:attributionName" rel="cc:attributionURL">mattc</a>
+	is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-nc/3.0/">Creative Commons Attribution-NonCommercial 3.0 Unported License</a>
+	</p>
+</div>
+
+</body>
+</html>
