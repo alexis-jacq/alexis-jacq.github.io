@@ -1,126 +1,50 @@
 <!DOCTYPE html>
-<html lang="en-us">
+
 <html>
 
     <head>
-        <link rel="stylesheet" href="/style.css" type="text/css" />
+
         <meta charset="utf-8" />
-        <meta name="description" content="">
-        <meta http-equiv="cache-control" content="max-age=86400" />
         <title>Alexis Jacq</title>
-        <link rel="shortcut icon" type="image/png" href="favicon.png"> 
-        <style>
-          div.container {
-              width: 100%;
-              border: 1px solid gray;
-              background-color:  #c9c7ff ;
-
+        <link rel="shortcut icon" type="image/png" href="favicon.png"> />
+        <style type="text/css">
+          body{
+            padding-left: 11em;
           }
-
-          header, footer {
-              padding: 1em;
-              color: #ffe48f;
-              background-color:  #c9c7ff ;
-              clear: left;
-              text-align: center;
-          }
-
-          nav {
-              float: left;
-              max-width: 300px;
-              margin: 0;
-              padding: 2em;
-              background-color:  #c9c7ff ;
-          }
-
-          nav ul {
-            list-style-type: none;
-            margin: 0;
-            padding: 0;
-            width: 200px;
-            background-color: #f1f1f1;
-          }
-          nav ul li a {
-            display: block;
-            padding: 0 8px 16px;
-            text-decoration: none;
-          }
-          nav ul li a.active {
-            background-color: #ffe48f;
-          }
-          nav ul li a:hover:not(.active) {
-            background-color: #555;
-            color: white;
-          }
-
-          article {
-            margin: 2% 2% 2% 2%;
-            padding: 2% 18% 2% 15%;
-            max-width: 2000px;
-            overflow: hidden;
-            background-color:  white;
+          ul.navbar {
+            position: absolute;
+            top: 2em;
+            left: 1em;
+            width: 9em
           }
         </style>
+
     </head>
 
-    <body bgcolor= "#c9c7ff">
 
-      <div class="Container">
+    <body>
+        <img onclick="change();" id="myImage" src="best_robot.jpeg" alt="a robot with Skynet" title="I will destroy you !" />
+        <script type="text/javascript">
+          var count = 0
+          var test = 0
+          function change(){
+            if (test==0) {
+              document.getElementById('myImage').src="best_robot2.jpeg";
+              test = 1;
+              count++;
+            }
+            else{
+              document.getElementById('myImage').src="best_robot.jpeg";
+              test = 0;
+              count++;
+            }
+          }
+      </script>
 
-        <header>
-            <img src="cub_robots.png" alt="nao robots cubism" style="width:100%" />
-        </header>
+        <p> Page in construction, coming soon !</p>
+        <p> link to : <a href="index.html"> HOME!</a> </p>
 
-        <nav>
 
-          <ul>
-            <center><h4>Menu</h4></center>
-            <li><a href="index.html"> Home</a></li>
-            <li><a href="research.html"> Research</a></li>
-            <li><a href="publications.html"> Publications</a></li>
-            <li><a href="page1.html"> Side-projects</a></li>
-            <li><a href="tutorials.html"> tutorials</a></li>
-            <li><a href="https://github.com/alexis-jacq" target="_blank"> Github  </a></li>
-            <li><a href="haikus.html"> Haikus</a></li>
-            <li><a href="painting.html"> Painting </a></li>
-            <li><a class="active" href="cool_links.html"> cool links </a></li>
-            <li><a href="contact_me.html"> contact me </a></li>
-          </ul>
-        </nav>
-
-        <article>
-        <table border="0">
-            <tbody>
-            <tr>
-            <td
-              <p><h2> François Bienvenu's <a href="http://francois.bienvenu.free.fr">Website</a> and <a href="http://francois.bienvenu.free.fr/the_toilet_seat_controversy/">his famous computational approach</a> of the Toilet Seat Controversy </h2></p>
-              <p>We can safely assume that the Toilet Seat Controversy is one of the most important problems of this century. I am pretty sure that a lot of philosophers and psychologists have already studied this controversy. But while the gap between ladies and gentlemen point of views is dangerously increasing, we believe that computational approaches are providing a new hope for a mutual and rational agreement <a href="http://www.scq.ubc.ca/a-game-theoretic-approach-to-the-toilet-seat-problem/">[1]</a><a href="hhttp://www.scq.ubc.ca/the-social-norm-of-leaving-the-toilet-seat-down-a-game-theoretic-analysis/">[2]</a><a href="http://francois.bienvenu.free.fr/the_toilet_seat_controversy/">[3]</a>.</p>
-            </td>
-            </tr>
-            <tr>
-            <td
-              <p><h2> Julien Magnan's <a href="http://www.julienmagnan.com">professional website</a></h2></p>
-              <p>After producing a couple of videos for the music composed under the stage name <a href="https://soundcloud.com/labekaa">“Labekaa”</a>, Julien discovered his passion for film-making and has since then produced web ads, short films and reportages where he became skillful in directing, filming and editing.</p>
-            </td>
-            </tr>
-            <tr>
-            <td
-              <p><h2><a href="https://deepart.io/">DeepArt.io</a></h2></p>
-              <p>Turn any photo into an artwork – for free! This web service provides a novel artistic painting tool that allows everyone to create and share artistic pictures with just a few clicks. All you need to do is upload a photo and choose your favorite style.</p>
-            </td>
-            </tr>
-            <tr>
-            <td
-              <p><h2> Fast Neural Style algorithm + Super Resolution Artistic Scaling </h2></p>
-              <p> Here's a  <a href="https://www.youtube.com/embed/pJ5RgsPEYgM">nice video</a> with artistic frames based on <a href="https://arxiv.org/abs/1508.06576">neural style</a> transfer! I used the open-source implementation of <a href="https://github.com/yusuketomoto/chainer-fast-neuralstyle">Yusuke Tomoto</a> to generate images and my <a href="https://github.com/alexis-jacq/image_scaling">angle maps</a> algorithm to artistically resize frames (x4). And here's a list of <a href="posters.html">nice HD poster</a> generated with these algorithms!</p>
-            </td>
-            </tr>
-        </table>
-        </article>
-
-        <footer></footer>
-      </div>
-
-  </body>
+    </body>
 
 </html>
