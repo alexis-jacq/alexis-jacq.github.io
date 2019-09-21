@@ -23,16 +23,11 @@
     <link rel="stylesheet" href="files/header.css" type="text/css" media="all">
     <style type="text/css">div.blocs_invisible{display:none;}</style>
     <style>
-      body{
-        background-color:  #80A8C8 ;
-        /*background-image: url("files/galaxy.jpg");*/
-      }
+
       /*MOUSE FOLLOWER*/
-      /* The "stage" */
       div#stage{
-      position: relative; /* necessary to do absolute positioning of the image relative to this div's position */
+        position: relative;
       }
-      /* The image that is following the mouse */
       img#follower1{ position: absolute; }
       img#follower2{ position: absolute; }
       img#follower3{ position: absolute; }
@@ -65,7 +60,6 @@
     <script src="files/spip.js" type="text/javascript"></script><script type="text/javascript" src="files/jquery_006.js"></script>
     <script type="text/javascript" src="files/jquery.js"></script>
     <script type="text/javascript" src="files/jsdyn-javascript_porte_plume_start_js-9b46f63a.js"></script>
-    <script>htactif=0;document.createElement('picture');</script>
     <script type="text/javascript" src="files/rAF.js"></script>
     <script type="text/javascript" src="files/jquery_003.js"></script>
     <script type="text/javascript" src="files/image_responsive.js"></script>
@@ -73,81 +67,7 @@
     <script type="text/javascript" src="files/colors.js"></script>
     <script type="text/javascript" src="files/jqColorPicker.js"></script>
     <script type="text/javascript" src="files/palette.js"></script>
-
-
-    <script type="text/javascript">
-    // Set up a 30 Hz frame rate
-    frameRate    =  30;
-    timeInterval = Math.round( 1000 / frameRate );
-    relMouseX    = Math.floor((Math.random() * 1000) + 1);
-    relMouseY    = Math.floor((Math.random() * 1000) + 1);
-    // butterfly:
-    up = 1;
-    right = 1;
-    $(document).ready( function () {
-      // get the stage offset
-      offset = $('#stage').offset();
-      // start calling animateFollower at the 'timeInterval' we calculated above
-      atimer = setInterval( "animateFollower()", timeInterval );
-    } );
-    // track and save the position of the mouse
-    $(document).mousemove( function(e) {
-      mouseX = e.pageX;
-      mouseY = e.pageY;
-      relMouseX = relMouseX + 0.05*(mouseX - offset.left - relMouseX);
-      relMouseY = relMouseY + 0.05*(mouseY - offset.top - relMouseY);
-      if (mouseX - offset.left - relMouseX < 0){
-        right = 1;
-      }
-      else{right = 0;}
-      // display the current mouse positions
-      $('#mouse_x-trace').text( mouseX );
-      $('#mouse_y-trace').text( mouseY );
-    } );
-    // move the image where the mouse is
-    // this function is called by the setInterval command above to run
-    // at a rate of 30 frames per second
-    function animateFollower() {
-      if (right==0){
-        if (up<5 && up>0 ){
-          $('#follower1').css('left', relMouseX);
-          $('#follower1').css('top', relMouseY-10);
-          $('#follower2').css('left', -1000);
-          $('#follower3').css('left', -1000);
-          $('#follower4').css('left', -1000);
-          up++;
-        }
-        else{
-          $('#follower2').css('left', relMouseX);
-          $('#follower2').css('top', relMouseY+10);
-          $('#follower1').css('left', -1000);
-          $('#follower3').css('left', -1000);
-          $('#follower4').css('left', -1000);
-          if (up>0){up=-2;}
-          else{up++;}
-        }
-      }
-      else{
-        if (up<5 && up>0 ){
-          $('#follower3').css('left', relMouseX);
-          $('#follower3').css('top', relMouseY-10);
-          $('#follower2').css('left', -1000);
-          $('#follower1').css('left', -1000);
-          $('#follower4').css('left', -1000);
-          up++;
-        }
-        else{
-          $('#follower4').css('left', relMouseX);
-          $('#follower4').css('top', relMouseY+10);
-          $('#follower2').css('left', -1000);
-          $('#follower3').css('left', -1000);
-          $('#follower1').css('left', -1000);
-          if (up>0){up=-2;}
-          else{up++;}
-        }
-      }
-    }
-    </script>
+    <script type="text/javascript" src="files/butterfly.js"></script>
   </head>
 
   <body class="">
@@ -160,7 +80,7 @@
 
         <!-- Logo -->
         <div id="logo">
-          <h1 id="title">Alexis Jacq</h1>
+          <h1 id="title">Alexis Jacq</h1
           <p></p>
         </div>
 
@@ -175,9 +95,23 @@
               </a>
             </li>
             <li>
-              <a href="index.html" id="" class="skel-layers-ignoreHref">
+              <a href="publications.html" id="" class="skel-layers-ignoreHref">
                 <span class="icon ">
-                  Research
+                  Publications
+                </span>
+              </a>
+            </li>
+            <li>
+              <a href="cv.html" id="" class="skel-layers-ignoreHref">
+                <span class="icon ">
+                  CV
+                </span>
+              </a>
+            </li>
+            <li>
+              <a href="contact.html" id="" class="skel-layers-ignoreHref">
+                <span class="icon ">
+                  Contact
                 </span>
               </a>
             </li>
@@ -213,6 +147,7 @@
       <div class="container" >
 
         <header>
+          <p></p>
           <h2 class="crayon article-titre-1 ">
             <strong><font style="font-size:58px;">
               <strong>Alexis Jacq</strong></font>
@@ -223,19 +158,20 @@
         <div class="crayon article-texte-1 ">
           <p><font style="font-size:28px;">
             <strong>
-              PhD student<br class="autobr">
               Multi-Agent Reinforcement Learning & Game Theory
             </strong></font>
           </p>
           <p><font style="font-size:15px;">
-            This website is under construction.
+            My current research concerns learning algorithms for social adaptations: </br>
+            How agents can model each other and how they can adapt their behaviors
+             in order to cooperate and communicate.</br>
+             </br>
+            More in general, my interests are:</br>
+            - Reinforcement learning</br>
+            - Game theory</br>
+            - Meta-learning</br>
+            - Evolutionary algorithms</br>
           </font></p>
-          <p><font style="font-size:28px;">
-            <strong>
-              E-mail
-            </strong>
-            &nbsp;: alexis.jacq<span class="cryptOK">@</span>gmail.com</font>
-          </p>
         </div>
       </div>
       </div>
