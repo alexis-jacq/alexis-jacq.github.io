@@ -74,15 +74,14 @@
     <script type="text/javascript" src="files/jqColorPicker.js"></script>
     <script type="text/javascript" src="files/palette.js"></script>
 
-    <!--
-    <script type="text/javascript" src="jquery-1.4.2.min.js"></script> -->
+
     <script type="text/javascript">
     // Set up a 30 Hz frame rate
     frameRate    =  30;
     timeInterval = Math.round( 1000 / frameRate );
-    relMouseX    = -20;
-    relMouseY    = -20;
-    // butterfly:
+    relMouseX    = Math.floor((Math.random() * 1000) + 1);
+    relMouseY    = Math.floor((Math.random() * 1000) + 1);
+    // butterfly:gcgcgc
     up = 1;
     right = 1;
     $(document).ready( function () {
