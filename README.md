@@ -65,9 +65,6 @@ To use the "AI Summarize" button, you need a free Google Gemini API key.
 **Q: The Search doesn't find my paper.**
 * **A:** The search relies on Semantic Scholar. Try typing the exact title or check if the paper is indexed there.
 
-**Q: The AI button hangs forever ("⏳...").**
-* **A:** If you are on a corporate network (VPN/Office WiFi), the firewall might block requests to Google's AI API. Try switching to a mobile hotspot or personal WiFi.
-
 **Q: I see a 404 error when visiting the page.**
 * **A:** Ensure you added the `.nojekyll` file to your repository. This tells GitHub to treat the repo as raw HTML.
 
