@@ -60,9 +60,14 @@
 </head>
 <body>
 
-    <div style="display: flex; justify-content: space-between; align-items: center;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
         <h1>📚 Scientific Paper Tracker</h1>
-        <button class="secondary" onclick="toggleApiSettings()">⚙️ AI Settings</button>
+        <div style="display: flex; gap: 10px;">
+            <a href="https://github.com/alexis-jacq/alexis-jacq.github.io/tree/master#readme" target="_blank" style="text-decoration:none;">
+                <button class="secondary">Readme</button>
+            </a>
+            <button class="secondary" onclick="toggleApiSettings()">⚙️ AI Settings</button>
+        </div>
     </div>
     
     <div id="api-section">
