@@ -128,9 +128,7 @@
                 <label for="readStatus" style="font-weight:bold; color:#1e293b;">Mark as Read / Finished</label>
             </div>
             
-            <label>Abstract (Auto-filled) 
-                <button class="secondary" style="font-size:0.7em; padding: 2px 8px; margin-left:10px;" onclick="magicFillFromAbstract()">✨ Fill Data from Abstract</button>
-            </label>
+            <label>Abstract (Auto-filled)</label>
             <textarea id="abstractText" rows="4" placeholder="Paste abstract here if search fails..."></textarea>
             
             <label>One-Sentence Summary</label>
@@ -272,25 +270,6 @@
             await callGemini(prompt, (result) => {
                 document.getElementById('summary').value = result.summary;
                 button.textContent = originalText;
-            });
-        }
-
-        async function magicFillFromAbstract() {
-            const abstract = document.getElementById('abstractText').value;
-            if(!abstract) return alert("Please paste an abstract first.");
-            const button = document.querySelector('button[onclick="magicFillFromAbstract()"]');
-            button.textContent = "⏳ Parsing...";
-            
-            const prompt = `
-            Read this abstract/text: "${abstract.substring(0, 1500)}..."
-            Extract: 1. Title, 2. A one-sentence summary, 3. A BibTeX citation (guess authors/year if missing).
-            Return JSON: {"title": "...", "summary": "...", "bibtex": "..."}
-            `;
-            await callGemini(prompt, (result) => {
-                document.getElementById('title').value = result.title || "";
-                document.getElementById('summary').value = result.summary || "";
-                document.getElementById('bibtex').value = result.bibtex || "";
-                button.textContent = "✨ Fill Data from Abstract";
             });
         }
 
