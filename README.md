@@ -7,11 +7,11 @@ A lightweight, **privacy-focused** research library that runs entirely in your b
 * **🔍 Instant Search:** Type a paper title to instantly fetch the Title, Abstract, PDF Link, and BibTeX citation from the **Semantic Scholar API**. No more manual copy-pasting.
 * **🤖 AI Summarization:** Use the optional AI button to generate a one-sentence "TL;DR" summary of the abstract using Google Gemini.
 * **📂 Organized Library:**
-    * Collapsible folder structure (e.g., `Diffusion_Models/LoRA`).
+    * Collapsible folder structure (e.g., `Diffusion_Models/post-training/distillation`).
     * Automatic alphabetical sorting.
     * **Read/Unread** status toggles (📖 vs ✅).
 * **🔒 Local Privacy:** All data is stored in your browser's **Local Storage**. No external database is used.
-* **Zero Install:** Runs as a single HTML file. Perfect for corporate/restricted environments where you cannot install software like Zotero.
+* **Zero Install:** Runs as a single HTML file.
 
 ---
 
