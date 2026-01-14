@@ -21,18 +21,10 @@
         .folder:hover { color: var(--primary); }
         .folder::before { content: "▶"; font-size: 0.7em; display: inline-block; width: 15px; transition: transform 0.2s; }
         .folder.open::before { content: "▼"; transform: rotate(0deg); }
-        .folder-icon { margin-right: 5px; }
-
-        /* Children Container */
-        .children-container { 
-            display: none; 
-            margin-left: 9px; 
-            padding-left: 15px; 
-            border-left: 1px solid #e2e8f0;
-        }
+        
+        .children-container { display: none; margin-left: 9px; padding-left: 15px; border-left: 1px solid #e2e8f0; }
         .children-container.expanded { display: block; }
         
-        /* Paper Links */
         .file { cursor: pointer; font-size: 0.9em; margin-top: 6px; display: block; text-decoration: none; padding: 2px 0; margin-left: 5px;}
         .file:hover { text-decoration: underline; }
         
@@ -45,6 +37,11 @@
         .main { background: white; padding: 25px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); position: relative; }
         input[type="text"], textarea, select { width: 100%; margin-bottom: 10px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;}
         
+        /* New Link Group */
+        .link-group { display: flex; gap: 10px; align-items: flex-start; }
+        .link-group input { flex-grow: 1; }
+        .link-btn { white-space: nowrap; padding: 8px 15px; height: 35px; background: #fff; border: 1px solid #ccc; color: #333; }
+        
         .checkbox-wrapper { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; background: #f0f9ff; padding: 10px; border-radius: 4px; border: 1px solid #bae6fd; }
         input[type="checkbox"] { transform: scale(1.5); cursor: pointer; }
         
@@ -56,7 +53,6 @@
         
         #api-section { margin-bottom: 20px; padding: 15px; background: #e0f2fe; border-radius: 4px; border: 1px solid #bae6fd; display: none; }
         .status-ok { color: green; font-weight: bold; }
-        .status-err { color: red; font-weight: bold; }
         
         #fileInput { display: none; }
     </style>
@@ -72,7 +68,6 @@
         <h3>AI Configuration</h3>
         <label>1. API Key (Stored in browser)</label>
         <input type="password" id="apiKey" placeholder="Paste 'AIza...' key here" onchange="saveSettings()">
-        
         <label>2. Select Model</label>
         <div style="display:flex; gap:10px;">
             <select id="modelSelect" onchange="saveSettings()">
@@ -87,7 +82,6 @@
         <div class="sidebar">
             <h3>Library</h3>
             <div id="tree-root" class="tree-container"></div>
-            
             <div class="backup-section">
                 <small style="color:#666; display:block; margin-bottom:5px;">Data Backup</small>
                 <button class="secondary" style="width:100%; margin-bottom:5px;" onclick="downloadJson()">⬇️ Save Backup (JSON)</button>
@@ -99,12 +93,18 @@
         <div class="main">
             <h3>Add New Paper</h3>
             <div class="btn-group">
-                <input type="text" id="inputUrl" placeholder="Paste Paper Abstract text here...">
+                <input type="text" id="aiInput" placeholder="Paste Abstract or Text here for AI generation...">
                 <button onclick="autoFillWithAI()">✨ Magic Fill</button>
             </div>
 
             <label>Title</label>
             <input type="text" id="title">
+            
+            <label>Paper Link / URL</label>
+            <div class="link-group">
+                <input type="text" id="paperLink" placeholder="https://arxiv.org/...">
+                <button class="link-btn" onclick="openLink()">🔗 Open</button>
+            </div>
             
             <label>Hierarchy (Path)</label>
             <input type="text" id="path" placeholder="e.g. diffusion/post-training">
@@ -134,14 +134,13 @@
         let papers = JSON.parse(localStorage.getItem('myPapers')) || [];
         let expandedPaths = new Set();
         
-        // --- API SETTINGS LAYER ---
+        // --- API & SETTINGS ---
         function getApiKey() { return localStorage.getItem('geminiKey') || ''; }
         function getModel() { return localStorage.getItem('geminiModel') || 'gemini-1.5-flash'; }
 
         document.addEventListener('DOMContentLoaded', () => {
             const key = getApiKey();
             if(key) document.getElementById('apiKey').value = key;
-            
             const savedModel = getModel();
             const select = document.getElementById('modelSelect');
             if(savedModel && select.options.length === 1) {
@@ -180,9 +179,7 @@
             downloadAnchorNode.click();
             downloadAnchorNode.remove();
         }
-
         function triggerRestore() { document.getElementById('fileInput').click(); }
-
         function loadJson(input) {
             const file = input.files[0];
             if (!file) return;
@@ -233,9 +230,15 @@
         async function autoFillWithAI() {
             const apiKey = getApiKey();
             const model = getModel();
-            const input = document.getElementById('inputUrl').value;
+            const input = document.getElementById('aiInput').value;
+            
             if (!apiKey) { toggleApiSettings(); return alert("Please configure API Key."); }
             if (!input) return alert("Please enter text.");
+
+            // Smart Logic: If input is a URL, copy it to the Link field
+            if (input.startsWith('http')) {
+                document.getElementById('paperLink').value = input;
+            }
 
             const button = document.querySelector('button[onclick="autoFillWithAI()"]');
             const originalText = button.textContent;
@@ -245,7 +248,7 @@
 
             const prompt = `
             You are a Citation Manager. Input: "${input}"
-            Tasks: 1. Title 2. Path (field/subfield) 3. One sentence summary 4. BibTeX citation (use Unknown if missing data).
+            Tasks: 1. Title 2. Path (field/subfield) 3. One sentence summary 4. BibTeX citation.
             Return JSON keys: title, path, summary, bibtex. No markdown.
             `;
             
@@ -283,7 +286,13 @@
             }
         }
 
-        // --- APP LOGIC ---
+        // --- APP LOGIC (Updated with Link Field) ---
+        function openLink() {
+            const url = document.getElementById('paperLink').value;
+            if(url) window.open(url, '_blank');
+            else alert("No link entered.");
+        }
+
         function savePaper() {
             const title = document.getElementById('title').value;
             if (!title) return alert("Title is required!");
@@ -294,7 +303,7 @@
                 path: document.getElementById('path').value || 'Uncategorized',
                 summary: document.getElementById('summary').value,
                 bibtex: document.getElementById('bibtex').value,
-                url: document.getElementById('inputUrl').value,
+                link: document.getElementById('paperLink').value, // Saved Link
                 read: document.getElementById('readStatus').checked
             };
 
@@ -317,8 +326,11 @@
             document.getElementById('path').value = paper.path;
             document.getElementById('summary').value = paper.summary;
             document.getElementById('bibtex').value = paper.bibtex;
-            document.getElementById('inputUrl').value = paper.url;
+            document.getElementById('paperLink').value = paper.link || paper.url || ""; // Legacy support for 'url'
             document.getElementById('readStatus').checked = paper.read || false;
+            
+            // Clear the AI Input as it's not part of the saved paper
+            document.getElementById('aiInput').value = "";
         }
 
         function deleteCurrentPaper() {
@@ -338,7 +350,8 @@
             document.getElementById('path').value = '';
             document.getElementById('summary').value = '';
             document.getElementById('bibtex').value = '';
-            document.getElementById('inputUrl').value = '';
+            document.getElementById('paperLink').value = '';
+            document.getElementById('aiInput').value = '';
             document.getElementById('readStatus').checked = false;
         }
         
@@ -351,13 +364,12 @@
             a.click();
         }
 
-        // --- RENDERING LOGIC (ALPHABETICAL) ---
+        // --- TREE RENDER ---
         function renderTree() {
             const root = document.getElementById('tree-root');
             root.innerHTML = '';
             const tree = {};
             
-            // Build Structure
             papers.forEach(p => {
                 const parts = p.path.split('/').map(s => s.trim()).filter(s => s);
                 let current = tree;
@@ -368,18 +380,15 @@
                 });
             });
 
-            // Recursive Renderer with Sorting
             function createNode(name, data, parentElement, fullPath) {
                 const itemContainer = document.createElement('div');
                 itemContainer.className = 'tree-item';
 
-                // 1. Render FOLDER Label
                 if (name) {
                     const folderDiv = document.createElement('div');
                     folderDiv.className = 'folder';
                     
                     const icon = document.createElement('span');
-                    icon.className = 'folder-icon';
                     icon.textContent = '📂';
                     
                     folderDiv.appendChild(icon);
@@ -405,16 +414,13 @@
                     itemContainer.appendChild(folderDiv);
                 }
 
-                // 2. Render CHILDREN (Sorted)
                 const childrenContainer = document.createElement('div');
                 childrenContainer.className = 'children-container';
                 if(expandedPaths.has(fullPath) || !name) {
                     childrenContainer.classList.add('expanded');
                 }
 
-                // SORT and ADD FILES
                 if (data._files) {
-                    // Alphabetical sort by Title
                     const sortedFiles = data._files.sort((a, b) => a.title.localeCompare(b.title));
                     sortedFiles.forEach(f => {
                         const fileEl = document.createElement('span');
@@ -426,9 +432,7 @@
                     });
                 }
 
-                // SORT and ADD SUBFOLDERS
                 if (data._folders) {
-                    // Alphabetical sort by Folder Name
                     const sortedKeys = Object.keys(data._folders).sort();
                     sortedKeys.forEach(key => {
                         const nextPath = fullPath ? `${fullPath}/${key}` : key;
@@ -443,11 +447,8 @@
                 if (childrenContainer.hasChildNodes()) {
                     itemContainer.appendChild(childrenContainer);
                 }
-
                 parentElement.appendChild(itemContainer);
             }
-
-            // Start recursion with sorted root keys
             Object.keys(tree).sort().forEach(k => createNode(k, tree[k], root, k));
         }
     </script>
