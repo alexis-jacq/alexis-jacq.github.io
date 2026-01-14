@@ -189,22 +189,23 @@
             statusEl.innerHTML = `<span style="color:${color}; font-weight:bold">${msg}</span>`;
         }
 
-        // --- SEMANTIC SCHOLAR SEARCH ---
+        // --- ROBUST SEARCH (With Auto-Retry) ---
         async function searchPapers() {
             const query = document.getElementById('searchInput').value;
             if(!query) return alert("Please enter a title.");
             
             const resultsDiv = document.getElementById('searchResults');
             resultsDiv.style.display = 'block';
-            resultsDiv.innerHTML = '<div style="padding:10px; color:#666;">🔎 Searching Semantic Scholar...</div>';
+            resultsDiv.innerHTML = '<div style="padding:10px; color:#666;">🔎 Searching...</div>';
+
+            const url = `https://api.semanticscholar.org/graph/v1/paper/search?query=${encodeURIComponent(query)}&limit=5&fields=title,authors,year,abstract,url,venue,openAccessPdf`;
 
             try {
-                // Request limited fields to be lightweight
-                const url = `https://api.semanticscholar.org/graph/v1/paper/search?query=${encodeURIComponent(query)}&limit=5&fields=title,authors,year,abstract,url,venue,openAccessPdf`;
-                const response = await fetch(url);
+                // Try to fetch, with 1 automatic retry if it fails
+                const response = await fetchWithRetry(url, 1);
 
-                if (response.status === 429) throw new Error("⚠️ Too Many Requests. Wait 2 mins.");
-                if (response.status === 403) throw new Error("🚫 Blocked by Firewall. Use 'Fill Data from Abstract' instead.");
+                if (response.status === 429) throw new Error("⚠️ Too Many Requests. Wait a moment.");
+                if (response.status === 403) throw new Error("🚫 Blocked by Firewall.");
                 if (!response.ok) throw new Error(`⚠️ Server Error (${response.status})`);
 
                 const data = await response.json();
@@ -219,7 +220,7 @@
                     const el = document.createElement('div');
                     el.className = 'result-item';
                     const authors = paper.authors ? paper.authors.map(a => a.name).slice(0, 3).join(', ') : 'Unknown';
-                    // Prefer OpenAccess PDF link, else standard URL
+                    // Store the best link available
                     paper.finalLink = (paper.openAccessPdf && paper.openAccessPdf.url) ? paper.openAccessPdf.url : paper.url;
 
                     el.innerHTML = `
@@ -233,6 +234,23 @@
             } catch (e) {
                 console.error(e);
                 resultsDiv.innerHTML = `<div style="padding:10px; color:#dc2626; font-weight:bold;">${e.message}</div>`;
+                if(e.message.includes("Failed to fetch")) {
+                     resultsDiv.innerHTML += `<div style="padding:0 10px 10px; font-size:0.9em; color:#666;">(Network glitch. Please try again or fill manually.)</div>`;
+                }
+            }
+        }
+
+        // Helper: Tries to fetch. If it fails, waits 1s and tries once more.
+        async function fetchWithRetry(url, retries) {
+            try {
+                return await fetch(url);
+            } catch (err) {
+                if (retries > 0) {
+                    console.log("First attempt failed, retrying...");
+                    await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+                    return await fetch(url);
+                }
+                throw err;
             }
         }
 
