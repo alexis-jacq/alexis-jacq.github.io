@@ -1,4 +1,92 @@
-<script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Paper Tracker</title>
+    <style>
+        :root { --primary: #2563eb; --bg: #f8fafc; --text: #1e293b; }
+        body { font-family: -apple-system, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; background: var(--bg); color: var(--text); }
+        .container { display: grid; grid-template-columns: 300px 1fr; gap: 20px; }
+        
+        /* Sidebar */
+        .sidebar { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); height: 80vh; overflow-y: auto; }
+        .tree-item { margin-left: 15px; border-left: 1px solid #ddd; padding-left: 10px; margin-top: 5px; }
+        .folder { font-weight: bold; cursor: pointer; color: #475569; }
+        .folder::before { content: "📁 "; }
+        .file { cursor: pointer; color: var(--primary); font-size: 0.9em; margin-top: 4px; display: block; }
+        .file:hover { text-decoration: underline; }
+
+        /* Main Content */
+        .main { background: white; padding: 25px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        input, textarea, select { width: 100%; margin-bottom: 10px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;}
+        .btn-group { display: flex; gap: 10px; margin-bottom: 20px; }
+        button { background: var(--primary); color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; }
+        button.secondary { background: #64748b; }
+        button:hover { opacity: 0.9; }
+        
+        /* API Config Box */
+        #api-section { margin-bottom: 20px; padding: 15px; background: #e0f2fe; border-radius: 4px; border: 1px solid #bae6fd; display: none; }
+        .status-ok { color: green; font-weight: bold; }
+        .status-err { color: red; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h1>📚 Scientific Paper Tracker</h1>
+        <button class="secondary" onclick="toggleApiSettings()">⚙️ AI Settings</button>
+    </div>
+    
+    <div id="api-section">
+        <h3>AI Configuration</h3>
+        <label>1. API Key (Stored in browser)</label>
+        <input type="password" id="apiKey" placeholder="Paste 'AIza...' key here" onchange="saveSettings()">
+        
+        <label>2. Select Model</label>
+        <div style="display:flex; gap:10px;">
+            <select id="modelSelect" onchange="saveSettings()">
+                <option value="gemini-1.5-flash">Default (gemini-1.5-flash)</option>
+            </select>
+            <button class="secondary" onclick="fetchModels()">🔄 Refresh Models</button>
+        </div>
+        <p id="connectionStatus" style="font-size: 0.9em; margin-top: 10px;"></p>
+    </div>
+
+    <div class="container">
+        <div class="sidebar">
+            <h3>Library</h3>
+            <div id="tree-root"></div>
+        </div>
+
+        <div class="main">
+            <h3>Add New Paper</h3>
+            <div class="btn-group">
+                <input type="text" id="inputUrl" placeholder="Paste Paper URL or Abstract text here...">
+                <button onclick="autoFillWithAI()">✨ Magic Fill</button>
+            </div>
+
+            <label>Title</label>
+            <input type="text" id="title">
+            
+            <label>Hierarchy (Path)</label>
+            <input type="text" id="path" placeholder="e.g. diffusion/post-training">
+            
+            <label>One-Sentence Summary</label>
+            <textarea id="summary" rows="2"></textarea>
+
+            <label>BibTeX</label>
+            <textarea id="bibtex" rows="5" style="font-family: monospace;"></textarea>
+
+            <div class="btn-group">
+                <button onclick="savePaper()">💾 Save Paper</button>
+                <button class="secondary" onclick="clearForm()">Clear</button>
+                <button class="secondary" onclick="exportBib()">⬇️ Export .bib</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
         // --- DATA LAYER ---
         let papers = JSON.parse(localStorage.getItem('myPapers')) || [];
         
@@ -244,3 +332,5 @@
             Object.keys(tree).forEach(k => createNode(k, tree[k], root));
         }
     </script>
+</body>
+</html>
