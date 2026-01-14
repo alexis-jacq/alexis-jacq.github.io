@@ -87,7 +87,23 @@
     <script>
         // --- DATA MANAGEMENT ---
         let papers = JSON.parse(localStorage.getItem('myPapers')) || [];
-        let apiKey = localStorage.getItem('geminiKey') || '';
+        
+        // We read the key directly from the input now to avoid save errors
+        function getApiKey() {
+            return document.getElementById('apiKey').value || localStorage.getItem('geminiKey') || '';
+        }
+
+        function saveApiKey() {
+            const key = document.getElementById('apiKey').value;
+            if(key) {
+                localStorage.setItem('geminiKey', key);
+            }
+        }
+
+        // Initialize Input if key exists
+        if(localStorage.getItem('geminiKey')) {
+            document.getElementById('apiKey').value = localStorage.getItem('geminiKey');
+        }
 
         function savePaper() {
             const title = document.getElementById('title').value;
@@ -103,7 +119,6 @@
                 added: new Date().toISOString()
             };
 
-            // Remove existing if updating
             const existingIndex = papers.findIndex(p => p.title === title);
             if (existingIndex > -1) papers.splice(existingIndex, 1);
 
@@ -116,21 +131,11 @@
         function loadPaper(id) {
             const paper = papers.find(p => p.id === id);
             if (!paper) return;
-
             document.getElementById('title').value = paper.title;
             document.getElementById('path').value = paper.path;
             document.getElementById('summary').value = paper.summary;
             document.getElementById('bibtex').value = paper.bibtex;
             document.getElementById('inputUrl').value = paper.url;
-        }
-        
-        function deletePaper(id) {
-            if(confirm('Delete this paper?')) {
-                papers = papers.filter(p => p.id !== id);
-                localStorage.setItem('myPapers', JSON.stringify(papers));
-                renderTree();
-                clearForm();
-            }
         }
 
         function exportBib() {
@@ -147,8 +152,6 @@
         function renderTree() {
             const root = document.getElementById('tree-root');
             root.innerHTML = '';
-            
-            // Build hierarchy object
             const tree = {};
             papers.forEach(p => {
                 const parts = p.path.split('/').map(s => s.trim()).filter(s => s);
@@ -160,19 +163,15 @@
                 });
             });
 
-            // Recursive render
             function createNode(name, data, parentElement) {
                 const container = document.createElement('div');
                 container.className = 'tree-item';
-                
                 if (name) {
                     const title = document.createElement('div');
                     title.className = 'folder';
                     title.textContent = name;
                     container.appendChild(title);
                 }
-
-                // Render Files
                 if (data._files) {
                     data._files.forEach(f => {
                         const fileEl = document.createElement('span');
@@ -182,35 +181,28 @@
                         container.appendChild(fileEl);
                     });
                 }
-
-                // Render Subfolders
                 if (data._folders) {
                     Object.keys(data._folders).forEach(key => {
                         createNode(key, { _files: [], _folders: data._folders[key]._folders, ...data._folders[key] }, container);
                     });
                 }
-                
                 parentElement.appendChild(container);
             }
-
             Object.keys(tree).forEach(k => createNode(k, tree[k], root));
         }
 
-        // --- AI INTEGRATION (Gemini) ---
+        // --- AI INTEGRATION (FIXED) ---
         function toggleApiSettings() {
             const el = document.getElementById('api-section');
             el.style.display = el.style.display === 'none' ? 'block' : 'none';
-            document.getElementById('apiKey').value = apiKey;
-        }
-
-        function saveApiKey() {
-            apiKey = document.getElementById('apiKey').value;
-            localStorage.setItem('geminiKey', apiKey);
         }
 
         async function autoFillWithAI() {
+            saveApiKey(); // Ensure key is saved before running
+            const apiKey = getApiKey();
             const input = document.getElementById('inputUrl').value;
-            if (!apiKey) return alert("Please set your Gemini API Key in settings first!");
+
+            if (!apiKey) return alert("Please enter your Gemini API Key in the settings!");
             if (!input) return alert("Please enter a URL or abstract text.");
 
             const button = document.querySelector('button[onclick="autoFillWithAI()"]');
@@ -227,6 +219,7 @@
             4. A standard BibTeX citation.
             
             Return ONLY a valid JSON object with keys: title, path, summary, bibtex.
+            DO NOT use markdown formatting like \`\`\`json. Just the raw JSON string.
             `;
 
             try {
@@ -239,6 +232,20 @@
                 });
                 
                 const data = await response.json();
+                
+                // --- ERROR CATCHING BLOCK ---
+                if (data.error) {
+                    throw new Error("Google API Error: " + data.error.message);
+                }
+                if (!data.candidates || data.candidates.length === 0) {
+                     // Check for safety blocks
+                     if (data.promptFeedback) {
+                        throw new Error("Safety Block: " + JSON.stringify(data.promptFeedback));
+                     }
+                     throw new Error("No response from AI. Try pasting the Abstract text instead of the URL.");
+                }
+                // -----------------------------
+
                 let text = data.candidates[0].content.parts[0].text;
                 // Cleanup JSON if markdown blocks exist
                 text = text.replace(/```json/g, '').replace(/```/g, '');
@@ -252,7 +259,7 @@
                 
             } catch (e) {
                 console.error(e);
-                alert("Error calling AI: " + e.message);
+                alert("Error: " + e.message);
             } finally {
                 button.textContent = originalText;
                 button.disabled = false;
