@@ -5,12 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Paper Tracker</title>
     <style>
-        :root { --primary: #2563eb; --bg: #f8fafc; --text: #1e293b; }
+        :root { --primary: #2563eb; --bg: #f8fafc; --text: #1e293b; --danger: #ef4444; }
         body { font-family: -apple-system, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; background: var(--bg); color: var(--text); }
         .container { display: grid; grid-template-columns: 300px 1fr; gap: 20px; }
         
         /* Sidebar */
-        .sidebar { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); height: 80vh; overflow-y: auto; }
+        .sidebar { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); height: 85vh; display: flex; flex-direction: column; }
+        .tree-container { flex-grow: 1; overflow-y: auto; margin-bottom: 15px; }
+        .backup-section { border-top: 1px solid #eee; padding-top: 15px; }
+        
         .tree-item { margin-left: 15px; border-left: 1px solid #ddd; padding-left: 10px; margin-top: 5px; }
         .folder { font-weight: bold; cursor: pointer; color: #475569; }
         .folder::before { content: "📁 "; }
@@ -23,12 +26,16 @@
         .btn-group { display: flex; gap: 10px; margin-bottom: 20px; }
         button { background: var(--primary); color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; }
         button.secondary { background: #64748b; }
+        button.danger { background: var(--danger); }
         button:hover { opacity: 0.9; }
         
         /* API Config Box */
         #api-section { margin-bottom: 20px; padding: 15px; background: #e0f2fe; border-radius: 4px; border: 1px solid #bae6fd; display: none; }
         .status-ok { color: green; font-weight: bold; }
         .status-err { color: red; font-weight: bold; }
+        
+        /* Hidden file input for restore */
+        #fileInput { display: none; }
     </style>
 </head>
 <body>
@@ -56,13 +63,20 @@
     <div class="container">
         <div class="sidebar">
             <h3>Library</h3>
-            <div id="tree-root"></div>
+            <div id="tree-root" class="tree-container"></div>
+            
+            <div class="backup-section">
+                <small style="color:#666; display:block; margin-bottom:5px;">Data Backup</small>
+                <button class="secondary" style="width:100%; margin-bottom:5px;" onclick="downloadJson()">⬇️ Save Backup (JSON)</button>
+                <button class="secondary" style="width:100%;" onclick="triggerRestore()">⬆️ Load Backup (JSON)</button>
+                <input type="file" id="fileInput" accept=".json" onchange="loadJson(this)">
+            </div>
         </div>
 
         <div class="main">
             <h3>Add New Paper</h3>
             <div class="btn-group">
-                <input type="text" id="inputUrl" placeholder="Paste Paper URL or Abstract text here...">
+                <input type="text" id="inputUrl" placeholder="Paste Paper Abstract text here...">
                 <button onclick="autoFillWithAI()">✨ Magic Fill</button>
             </div>
 
@@ -81,6 +95,7 @@
             <div class="btn-group">
                 <button onclick="savePaper()">💾 Save Paper</button>
                 <button class="secondary" onclick="clearForm()">Clear</button>
+                <button class="danger" onclick="deleteCurrentPaper()">🗑️ Delete</button>
                 <button class="secondary" onclick="exportBib()">⬇️ Export .bib</button>
             </div>
         </div>
@@ -99,7 +114,6 @@
             const key = getApiKey();
             if(key) document.getElementById('apiKey').value = key;
             
-            // Restore model if saved
             const savedModel = getModel();
             const select = document.getElementById('modelSelect');
             if(savedModel && select.options.length === 1) {
@@ -122,7 +136,6 @@
             el.style.display = el.style.display === 'none' ? 'block' : 'none';
         }
 
-        // --- LOGGING HELPER ---
         function logStatus(msg, type='neutral') {
             const statusEl = document.getElementById('connectionStatus');
             const color = type === 'error' ? 'red' : (type === 'success' ? 'green' : '#666');
@@ -130,12 +143,54 @@
             console.log(`[App Log] ${msg}`);
         }
 
+        // --- BACKUP & RESTORE FEATURES ---
+        function downloadJson() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(papers, null, 2));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", "my_papers_backup.json");
+            document.body.appendChild(downloadAnchorNode); // required for firefox
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+        }
+
+        function triggerRestore() {
+            document.getElementById('fileInput').click();
+        }
+
+        function loadJson(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const loadedPapers = JSON.parse(e.target.result);
+                    if (Array.isArray(loadedPapers)) {
+                        if(confirm(`Found ${loadedPapers.length} papers in backup. Replace current library?`)) {
+                            papers = loadedPapers;
+                            localStorage.setItem('myPapers', JSON.stringify(papers));
+                            renderTree();
+                            alert("Library restored successfully!");
+                        }
+                    } else {
+                        alert("Invalid JSON format.");
+                    }
+                } catch (err) {
+                    alert("Error reading file: " + err.message);
+                }
+                // Reset input so same file can be selected again
+                input.value = ''; 
+            };
+            reader.readAsText(file);
+        }
+
         // --- MODEL FETCHER ---
         async function fetchModels() {
             const key = document.getElementById('apiKey').value;
             if(!key) return alert("Please enter an API Key first.");
             
-            logStatus("Connecting to Google to fetch models...", "neutral");
+            logStatus("Connecting to Google...", "neutral");
 
             try {
                 const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
@@ -146,7 +201,6 @@
                 const select = document.getElementById('modelSelect');
                 select.innerHTML = '';
                 
-                // Filter for content generation models
                 const validModels = data.models.filter(m => 
                     m.supportedGenerationMethods && m.supportedGenerationMethods.includes("generateContent")
                 );
@@ -168,7 +222,7 @@
             }
         }
 
-        // --- AI LOGIC (With Timeout & Debugging) ---
+        // --- AI LOGIC ---
         async function autoFillWithAI() {
             const apiKey = getApiKey();
             const model = getModel();
@@ -180,14 +234,12 @@
             }
             if (!input) return alert("Please enter the Abstract text.");
 
-            // UI Updates
             const button = document.querySelector('button[onclick="autoFillWithAI()"]');
             const originalText = button.textContent;
             button.textContent = "⏳ Generating...";
             button.disabled = true;
             logStatus(`Sending request to ${model}...`, "neutral");
 
-            // --- STRONGER PROMPT ---
             const prompt = `
             You are a helpful Research Assistant and Citation Manager.
             I have this input text (Abstract or URL): 
@@ -211,7 +263,6 @@
             }
             `;
 
-            // Setup Timeout (15 seconds)
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 15000);
 
@@ -232,7 +283,6 @@
                 if (!data.candidates || !data.candidates[0].content) throw new Error("Safety Block or Empty Response.");
 
                 let text = data.candidates[0].content.parts[0].text;
-                // Aggressive cleanup to ensure JSON parses
                 text = text.replace(/```json/g, '').replace(/```/g, '').trim(); 
                 
                 const result = JSON.parse(text);
@@ -241,7 +291,6 @@
                 document.getElementById('path').value = (result.path || "").toLowerCase().replace(/ /g, '_');
                 document.getElementById('summary').value = result.summary || "";
                 
-                // Extra check to ensure BibTeX isn't empty
                 if (result.bibtex && result.bibtex.length > 10) {
                     document.getElementById('bibtex').value = result.bibtex;
                 } else {
@@ -294,6 +343,21 @@
             document.getElementById('summary').value = paper.summary;
             document.getElementById('bibtex').value = paper.bibtex;
             document.getElementById('inputUrl').value = paper.url;
+        }
+
+        function deleteCurrentPaper() {
+            const title = document.getElementById('title').value;
+            if (!title) return;
+            
+            const existingIndex = papers.findIndex(p => p.title === title);
+            if (existingIndex > -1) {
+                if(confirm("Are you sure you want to delete '" + title + "'?")) {
+                    papers.splice(existingIndex, 1);
+                    localStorage.setItem('myPapers', JSON.stringify(papers));
+                    renderTree();
+                    clearForm();
+                }
+            }
         }
 
         function clearForm() {
