@@ -2,6 +2,8 @@
 
 A lightweight, **privacy-focused** research library that runs entirely in your browser. It combines **Semantic Scholar** for accurate metadata retrieval and **Google Gemini AI** for intelligent summarization.
 
+**[Live Demo](https://alexis-jacq.github.io/)**
+
 ## ✨ Key Features
 
 * **🔍 Instant Search:** Type a paper title to instantly fetch the Title, Abstract, PDF Link, and BibTeX citation from the **Semantic Scholar API**. No more manual copy-pasting.
