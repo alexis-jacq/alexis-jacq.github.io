@@ -14,20 +14,16 @@
         .tree-container { flex-grow: 1; overflow-y: auto; margin-bottom: 15px; }
         .backup-section { border-top: 1px solid #eee; padding-top: 15px; }
         
-        /* Tree Visualization */
+        /* Tree UI */
         .tree-item { margin-top: 5px; }
-        
         .folder { font-weight: bold; cursor: pointer; color: #475569; font-size: 0.95em; user-select: none; display: flex; align-items: center; gap: 5px;}
         .folder:hover { color: var(--primary); }
         .folder::before { content: "▶"; font-size: 0.7em; display: inline-block; width: 15px; transition: transform 0.2s; }
         .folder.open::before { content: "▼"; transform: rotate(0deg); }
-        
         .children-container { display: none; margin-left: 9px; padding-left: 15px; border-left: 1px solid #e2e8f0; }
         .children-container.expanded { display: block; }
-        
         .file { cursor: pointer; font-size: 0.9em; margin-top: 6px; display: block; text-decoration: none; padding: 2px 0; margin-left: 5px;}
         .file:hover { text-decoration: underline; }
-        
         .status-unread { color: var(--primary); }
         .status-unread::before { content: "📖 "; }
         .status-read { color: var(--success); opacity: 0.8; }
@@ -37,7 +33,14 @@
         .main { background: white; padding: 25px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); position: relative; }
         input[type="text"], textarea, select { width: 100%; margin-bottom: 10px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;}
         
-        /* New Link Group */
+        /* Search Box Styles */
+        .search-box { display: flex; gap: 10px; margin-bottom: 10px; }
+        .search-results { max-height: 200px; overflow-y: auto; border: 1px solid #eee; display: none; margin-bottom: 15px; border-radius: 4px; }
+        .result-item { padding: 10px; border-bottom: 1px solid #eee; cursor: pointer; transition: background 0.1s; }
+        .result-item:hover { background: #f0f9ff; }
+        .result-title { font-weight: bold; font-size: 0.95em; }
+        .result-meta { font-size: 0.8em; color: #666; }
+
         .link-group { display: flex; gap: 10px; align-items: flex-start; }
         .link-group input { flex-grow: 1; }
         .link-btn { white-space: nowrap; padding: 8px 15px; height: 35px; background: #fff; border: 1px solid #ccc; color: #333; }
@@ -52,8 +55,6 @@
         button:hover { opacity: 0.9; }
         
         #api-section { margin-bottom: 20px; padding: 15px; background: #e0f2fe; border-radius: 4px; border: 1px solid #bae6fd; display: none; }
-        .status-ok { color: green; font-weight: bold; }
-        
         #fileInput { display: none; }
     </style>
 </head>
@@ -92,10 +93,15 @@
 
         <div class="main">
             <h3>Add New Paper</h3>
-            <div class="btn-group">
-                <input type="text" id="aiInput" placeholder="Paste Abstract or Text here for AI generation...">
-                <button onclick="autoFillWithAI()">✨ Magic Fill</button>
+            
+            <label>Search Paper (Semantic Scholar)</label>
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Type paper title..." onkeydown="if(event.key === 'Enter') searchPapers()">
+                <button onclick="searchPapers()">🔍 Search</button>
             </div>
+            <div id="searchResults" class="search-results"></div>
+
+            <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
 
             <label>Title</label>
             <input type="text" id="title">
@@ -107,15 +113,24 @@
             </div>
             
             <label>Hierarchy (Path)</label>
-            <input type="text" id="path" placeholder="e.g. diffusion/post-training">
+            <div style="display: flex; gap: 10px;">
+                <input type="text" id="path" placeholder="e.g. diffusion/post-training">
+                <button class="secondary" style="width: 120px;" onclick="runAiCategorization()">✨ AI Path</button>
+            </div>
             
             <div class="checkbox-wrapper">
                 <input type="checkbox" id="readStatus">
                 <label for="readStatus" style="font-weight:bold; color:#1e293b;">Mark as Read / Finished</label>
             </div>
             
+            <label>Abstract (Auto-filled)</label>
+            <textarea id="abstractText" rows="4" placeholder="Abstract will appear here..."></textarea>
+            
             <label>One-Sentence Summary</label>
-            <textarea id="summary" rows="2"></textarea>
+            <div style="display: flex; gap: 10px; align-items: flex-start;">
+                <textarea id="summary" rows="2"></textarea>
+                <button class="secondary" style="height: 60px;" onclick="runAiSummary()">✨ AI Summarize</button>
+            </div>
 
             <label>BibTeX</label>
             <textarea id="bibtex" rows="5" style="font-family: monospace;"></textarea>
@@ -167,6 +182,218 @@
             const statusEl = document.getElementById('connectionStatus');
             const color = type === 'error' ? 'red' : (type === 'success' ? 'green' : '#666');
             statusEl.innerHTML = `<span style="color:${color}; font-weight:bold">${msg}</span>`;
+        }
+
+        // --- SEMANTIC SCHOLAR SEARCH ---
+        async function searchPapers() {
+            const query = document.getElementById('searchInput').value;
+            if(!query) return alert("Please enter a title.");
+            
+            const resultsDiv = document.getElementById('searchResults');
+            resultsDiv.style.display = 'block';
+            resultsDiv.innerHTML = '<div style="padding:10px;">Searching Semantic Scholar...</div>';
+
+            try {
+                // Fetch basic details
+                const response = await fetch(`https://api.semanticscholar.org/graph/v1/paper/search?query=${encodeURIComponent(query)}&limit=5&fields=title,authors,year,abstract,url,venue,isOpenAccess,openAccessPdf`);
+                const data = await response.json();
+                
+                if(!data.data || data.data.length === 0) {
+                    resultsDiv.innerHTML = '<div style="padding:10px;">No papers found.</div>';
+                    return;
+                }
+
+                resultsDiv.innerHTML = '';
+                data.data.forEach(paper => {
+                    const el = document.createElement('div');
+                    el.className = 'result-item';
+                    const authors = paper.authors ? paper.authors.map(a => a.name).slice(0, 3).join(', ') : 'Unknown';
+                    el.innerHTML = `
+                        <div class="result-title">${paper.title}</div>
+                        <div class="result-meta">${paper.year || 'No Year'} • ${authors}</div>
+                    `;
+                    el.onclick = () => selectPaper(paper);
+                    resultsDiv.appendChild(el);
+                });
+
+            } catch (e) {
+                console.error(e);
+                resultsDiv.innerHTML = '<div style="padding:10px; color:red;">Error fetching papers.</div>';
+            }
+        }
+
+        function selectPaper(paper) {
+            // 1. Fill basic fields
+            document.getElementById('title').value = paper.title;
+            document.getElementById('abstractText').value = paper.abstract || "No abstract available.";
+            
+            // 2. Determine best link
+            let link = paper.url;
+            if(paper.openAccessPdf && paper.openAccessPdf.url) link = paper.openAccessPdf.url;
+            document.getElementById('paperLink').value = link || "";
+
+            // 3. Generate BibTeX manually (Semantic Scholar API sends JSON)
+            const firstAuthor = paper.authors && paper.authors.length > 0 ? paper.authors[0].name.split(' ').pop() : 'unknown';
+            const year = paper.year || '2024';
+            const citationKey = `${firstAuthor.toLowerCase()}${year}${paper.title.split(' ')[0].toLowerCase()}`;
+            
+            let authorList = paper.authors ? paper.authors.map(a => a.name).join(' and ') : 'Unknown';
+            
+            const bib = `@article{${citationKey},
+  title={${paper.title}},
+  author={${authorList}},
+  journal={${paper.venue || 'ArXiv'}},
+  year={${year}},
+  url={${link || ''}}
+}`;
+            document.getElementById('bibtex').value = bib;
+
+            // 4. Close Search
+            document.getElementById('searchResults').style.display = 'none';
+
+            // 5. Trigger AI for Summary and Path
+            if(paper.abstract) {
+                runAiCategorization(true); // pass true to indicate it's auto-triggered
+            }
+        }
+
+        // --- AI LOGIC (Split into Summary vs Path) ---
+        async function runAiCategorization(isAuto = false) {
+            const abstract = document.getElementById('abstractText').value;
+            const title = document.getElementById('title').value;
+            if(!abstract && !title) return alert("Fill Title/Abstract first.");
+
+            const button = document.querySelector('button[onclick="runAiCategorization()"]');
+            if(!isAuto) button.textContent = "⏳...";
+
+            const prompt = `
+            Based on Title: "${title}" and Abstract: "${abstract.substring(0, 500)}...", 
+            suggest a folder path (e.g. machine_learning/transformers). 
+            Return JSON: {"path": "string", "summary": "string"}. 
+            Also generate a 1-sentence summary.
+            `;
+            
+            await callGemini(prompt, (result) => {
+                document.getElementById('path').value = (result.path || "uncategorized").toLowerCase().replace(/ /g, '_');
+                document.getElementById('summary').value = result.summary || "";
+                if(!isAuto) button.textContent = "✨ AI Path";
+            });
+        }
+
+        async function runAiSummary() {
+            const abstract = document.getElementById('abstractText').value;
+            if(!abstract) return alert("No abstract to summarize.");
+            
+            const button = document.querySelector('button[onclick="runAiSummary()"]');
+            button.textContent = "⏳...";
+
+            const prompt = `Summarize this in one insightful sentence: "${abstract.substring(0, 1000)}..." Return JSON: {"summary": "string"}`;
+            
+            await callGemini(prompt, (result) => {
+                document.getElementById('summary').value = result.summary;
+                button.textContent = "✨ AI Summarize";
+            });
+        }
+
+        async function callGemini(promptText, callback) {
+            const apiKey = getApiKey();
+            const model = getModel();
+            if(!apiKey) return alert("Please configure API Key.");
+
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
+                });
+                const data = await response.json();
+                if(data.error) throw new Error(data.error.message);
+                
+                let text = data.candidates[0].content.parts[0].text.replace(/```json/g, '').replace(/```/g, '').trim();
+                callback(JSON.parse(text));
+            } catch (e) {
+                console.error(e);
+                alert("AI Error: " + e.message);
+            }
+        }
+
+        // --- APP LOGIC ---
+        function openLink() {
+            const url = document.getElementById('paperLink').value;
+            if(url) window.open(url, '_blank');
+            else alert("No link entered.");
+        }
+
+        function savePaper() {
+            const title = document.getElementById('title').value;
+            if (!title) return alert("Title is required!");
+
+            const newPaper = {
+                id: Date.now(),
+                title: title,
+                path: document.getElementById('path').value || 'Uncategorized',
+                abstract: document.getElementById('abstractText').value,
+                summary: document.getElementById('summary').value,
+                bibtex: document.getElementById('bibtex').value,
+                link: document.getElementById('paperLink').value,
+                read: document.getElementById('readStatus').checked
+            };
+
+            const existingIndex = papers.findIndex(p => p.title === title);
+            if (existingIndex > -1) {
+                newPaper.id = papers[existingIndex].id;
+                papers.splice(existingIndex, 1);
+            }
+            
+            papers.push(newPaper);
+            localStorage.setItem('myPapers', JSON.stringify(papers));
+            renderTree();
+            clearForm();
+        }
+
+        function loadPaper(id) {
+            const paper = papers.find(p => p.id === id);
+            if (!paper) return;
+            document.getElementById('title').value = paper.title;
+            document.getElementById('path').value = paper.path;
+            document.getElementById('abstractText').value = paper.abstract || "";
+            document.getElementById('summary').value = paper.summary;
+            document.getElementById('bibtex').value = paper.bibtex;
+            document.getElementById('paperLink').value = paper.link || "";
+            document.getElementById('readStatus').checked = paper.read || false;
+        }
+
+        function deleteCurrentPaper() {
+            const title = document.getElementById('title').value;
+            if (!title) return;
+            const existingIndex = papers.findIndex(p => p.title === title);
+            if (existingIndex > -1 && confirm("Delete '" + title + "'?")) {
+                papers.splice(existingIndex, 1);
+                localStorage.setItem('myPapers', JSON.stringify(papers));
+                renderTree();
+                clearForm();
+            }
+        }
+
+        function clearForm() {
+            document.getElementById('title').value = '';
+            document.getElementById('path').value = '';
+            document.getElementById('abstractText').value = '';
+            document.getElementById('summary').value = '';
+            document.getElementById('bibtex').value = '';
+            document.getElementById('paperLink').value = '';
+            document.getElementById('searchInput').value = '';
+            document.getElementById('searchResults').style.display = 'none';
+            document.getElementById('readStatus').checked = false;
+        }
+
+        function exportBib() {
+            const bibContent = papers.map(p => p.bibtex).join('\n\n');
+            const blob = new Blob([bibContent], { type: 'text/plain' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'library.bib';
+            a.click();
         }
 
         // --- BACKUP & RESTORE ---
@@ -224,144 +451,6 @@
                 logStatus(`✅ Found ${validModels.length} models.`, "success");
                 saveSettings(); 
             } catch (e) { logStatus(`❌ Error: ${e.message}`, "error"); }
-        }
-
-        // --- AI LOGIC ---
-        async function autoFillWithAI() {
-            const apiKey = getApiKey();
-            const model = getModel();
-            const input = document.getElementById('aiInput').value;
-            
-            if (!apiKey) { toggleApiSettings(); return alert("Please configure API Key."); }
-            if (!input) return alert("Please enter text.");
-
-            // Smart Logic: If input is a URL, copy it to the Link field
-            if (input.startsWith('http')) {
-                document.getElementById('paperLink').value = input;
-            }
-
-            const button = document.querySelector('button[onclick="autoFillWithAI()"]');
-            const originalText = button.textContent;
-            button.textContent = "⏳ Generating...";
-            button.disabled = true;
-            logStatus(`Requesting ${model}...`, "neutral");
-
-            const prompt = `
-            You are a Citation Manager. Input: "${input}"
-            Tasks: 1. Title 2. Path (field/subfield) 3. One sentence summary 4. BibTeX citation.
-            Return JSON keys: title, path, summary, bibtex. No markdown.
-            `;
-            
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 15000);
-
-            try {
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
-                    signal: controller.signal
-                });
-                clearTimeout(timeoutId); 
-                const data = await response.json();
-                if (data.error) throw new Error(data.error.message);
-                
-                let text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-                text = text.replace(/```json/g, '').replace(/```/g, '').trim(); 
-                const result = JSON.parse(text);
-                
-                document.getElementById('title').value = result.title || "";
-                document.getElementById('path').value = (result.path || "").toLowerCase().replace(/ /g, '_');
-                document.getElementById('summary').value = result.summary || "";
-                document.getElementById('bibtex').value = result.bibtex || "@misc{unknown, title={Unknown}, author={Unknown}, year={2024}}";
-                document.getElementById('readStatus').checked = false;
-
-                logStatus("✅ Done!", "success");
-            } catch (e) {
-                logStatus(e.name === 'AbortError' ? "❌ Timeout." : `❌ Error: ${e.message}`, "error");
-                if(e.name !== 'AbortError') alert(e.message);
-            } finally {
-                button.textContent = originalText;
-                button.disabled = false;
-            }
-        }
-
-        // --- APP LOGIC (Updated with Link Field) ---
-        function openLink() {
-            const url = document.getElementById('paperLink').value;
-            if(url) window.open(url, '_blank');
-            else alert("No link entered.");
-        }
-
-        function savePaper() {
-            const title = document.getElementById('title').value;
-            if (!title) return alert("Title is required!");
-
-            const newPaper = {
-                id: Date.now(),
-                title: title,
-                path: document.getElementById('path').value || 'Uncategorized',
-                summary: document.getElementById('summary').value,
-                bibtex: document.getElementById('bibtex').value,
-                link: document.getElementById('paperLink').value, // Saved Link
-                read: document.getElementById('readStatus').checked
-            };
-
-            const existingIndex = papers.findIndex(p => p.title === title);
-            if (existingIndex > -1) {
-                newPaper.id = papers[existingIndex].id;
-                papers.splice(existingIndex, 1);
-            }
-            
-            papers.push(newPaper);
-            localStorage.setItem('myPapers', JSON.stringify(papers));
-            renderTree();
-            clearForm();
-        }
-
-        function loadPaper(id) {
-            const paper = papers.find(p => p.id === id);
-            if (!paper) return;
-            document.getElementById('title').value = paper.title;
-            document.getElementById('path').value = paper.path;
-            document.getElementById('summary').value = paper.summary;
-            document.getElementById('bibtex').value = paper.bibtex;
-            document.getElementById('paperLink').value = paper.link || paper.url || ""; // Legacy support for 'url'
-            document.getElementById('readStatus').checked = paper.read || false;
-            
-            // Clear the AI Input as it's not part of the saved paper
-            document.getElementById('aiInput').value = "";
-        }
-
-        function deleteCurrentPaper() {
-            const title = document.getElementById('title').value;
-            if (!title) return;
-            const existingIndex = papers.findIndex(p => p.title === title);
-            if (existingIndex > -1 && confirm("Delete '" + title + "'?")) {
-                papers.splice(existingIndex, 1);
-                localStorage.setItem('myPapers', JSON.stringify(papers));
-                renderTree();
-                clearForm();
-            }
-        }
-
-        function clearForm() {
-            document.getElementById('title').value = '';
-            document.getElementById('path').value = '';
-            document.getElementById('summary').value = '';
-            document.getElementById('bibtex').value = '';
-            document.getElementById('paperLink').value = '';
-            document.getElementById('aiInput').value = '';
-            document.getElementById('readStatus').checked = false;
-        }
-        
-        function exportBib() {
-            const bibContent = papers.map(p => p.bibtex).join('\n\n');
-            const blob = new Blob([bibContent], { type: 'text/plain' });
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = 'library.bib';
-            a.click();
         }
 
         // --- TREE RENDER ---
