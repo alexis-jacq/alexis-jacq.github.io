@@ -1,166 +1,274 @@
 <!DOCTYPE html>
-<!--
-  Prologue by HTML5 UP
-  html5up.net | @ajlkn
-  Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
--->
-<html>
-  <head>
-    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
-    <title>Alexis Jacq </title>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="shortcut icon" type="image/png" href="files/favicon.png">
-
-    <!-- styles -->
-    <link rel="stylesheet" href="files/colorbox.css" type="text/css" media="all"><link rel="stylesheet" type="text/css" media="all" href="files/barre_outils.css">
-    <link rel="stylesheet" type="text/css" media="all" href="files/cssdyn-css_barre_outils_icones_css-3488cf63.css">
-    <link rel="stylesheet" type="text/css" media="all" href="files/image_responsive.css">
-    <link rel="stylesheet" href="files/main.css">
-    <link rel="stylesheet" href="files/font-awesome.css">
-    <link rel="stylesheet" href="files/spip.css" type="text/css">
-    <link rel="stylesheet" href="files/enluminurestypo.css" type="text/css" media="all">
-    <link rel="stylesheet" href="files/header.css" type="text/css" media="all">
-    <style type="text/css">div.blocs_invisible{display:none;}</style>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Paper Tracker</title>
     <style>
+        :root { --primary: #2563eb; --bg: #f8fafc; --text: #1e293b; }
+        body { font-family: -apple-system, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; background: var(--bg); color: var(--text); }
+        .container { display: grid; grid-template-columns: 300px 1fr; gap: 20px; }
+        
+        /* Sidebar (Tree) */
+        .sidebar { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); height: 80vh; overflow-y: auto; }
+        .tree-item { margin-left: 15px; border-left: 1px solid #ddd; padding-left: 10px; margin-top: 5px; }
+        .folder { font-weight: bold; cursor: pointer; color: #475569; }
+        .folder::before { content: "📁 "; }
+        .file { cursor: pointer; color: var(--primary); font-size: 0.9em; margin-top: 4px; display: block; }
+        .file:hover { text-decoration: underline; }
 
-      /*MOUSE FOLLOWER*/
-      div#stage{
-        position: relative;
-      }
-      img#follower1{ position: absolute; }
-      img#follower2{ position: absolute; }
-      img#follower3{ position: absolute; }
-      img#follower4{ position: absolute; }
+        /* Main Content */
+        .main { background: white; padding: 25px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        input, textarea, select { width: 100%; margin-bottom: 10px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;}
+        .btn-group { display: flex; gap: 10px; margin-bottom: 20px; }
+        button { background: var(--primary); color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; }
+        button.secondary { background: #64748b; }
+        button.danger { background: #ef4444; }
+        button:hover { opacity: 0.9; }
+        
+        /* API Key Modal */
+        #api-section { margin-bottom: 20px; padding: 10px; background: #e0f2fe; border-radius: 4px; display: none; }
+        
+        .paper-card { border: 1px solid #e2e8f0; padding: 15px; margin-bottom: 15px; border-radius: 6px; }
+        .citation-box { background: #f1f5f9; padding: 10px; font-family: monospace; font-size: 0.85em; white-space: pre-wrap; }
+        .tag { display: inline-block; background: #e2e8f0; padding: 2px 8px; border-radius: 12px; font-size: 0.8em; margin-bottom: 10px; }
     </style>
+</head>
+<body>
 
-    <!-- script for Google analytics -->
-    <!-- Global site tag (gtag.js) - Google Analytics -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-88123473-1"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-      gtag('config', 'UA-88123473-1');
-    </script>
-
-
-    <!-- scripts for window behaviour -->
-    <script src="files/header.js" type="text/javascript"></script>
-    <script src="files/html5shiv.js"></script>
-    <script src="files/jquery_011.js" type="text/javascript"></script>
-    <script src="files/jquery-migrate-3.js" type="text/javascript"></script>
-    <script src="files/jquery_010.js" type="text/javascript"></script>
-    <script src="files/jquery_009.js" type="text/javascript"></script>
-    <script src="files/jquery_002.js" type="text/javascript"></script>
-    <script src="files/ajaxCallback.js" type="text/javascript"></script>
-    <script src="files/js.js" type="text/javascript"></script>
-    <script src="files/jquery_004.js" type="text/javascript"></script>
-    <script src="files/jquery_005.js" type="text/javascript"></script>
-    <script src="files/spip.js" type="text/javascript"></script><script type="text/javascript" src="files/jquery_006.js"></script>
-    <script type="text/javascript" src="files/jquery.js"></script>
-    <script type="text/javascript" src="files/jsdyn-javascript_porte_plume_start_js-9b46f63a.js"></script>
-    <script type="text/javascript" src="files/rAF.js"></script>
-    <script type="text/javascript" src="files/jquery_003.js"></script>
-    <script type="text/javascript" src="files/image_responsive.js"></script>
-    <script type="text/javascript" src="files/picturefill.js"></script>
-    <script type="text/javascript" src="files/colors.js"></script>
-    <script type="text/javascript" src="files/jqColorPicker.js"></script>
-    <script type="text/javascript" src="files/palette.js"></script>
-    <script type="text/javascript" src="files/butterfly.js"></script>
-  </head>
-
-  <body class="">
-
-    <!-- HEADER -->
-    <div id="header">
-
-      <!-- HEADER-TOP -->
-      <div class="top">
-
-        <!-- Logo -->
-        <div id="logo">
-          <h1 id="title">Alexis Jacq</h1
-          <p></p>
-        </div>
-
-        <!-- Nav -->
-        <nav id="nav">
-          <ul>
-            <li>
-              <a href="index.html" id="" class="skel-layers-ignoreHref">
-                <span class="icon ">
-                  Home
-                </span>
-              </a>
-            </li>
-            <li>
-              <a href="publications.html" id="" class="skel-layers-ignoreHref">
-                <span class="icon ">
-                  Publications
-                </span>
-              </a>
-            </li>
-            <li>
-              <a href="cv.html" id="" class="skel-layers-ignoreHref">
-                <span class="icon ">
-                  CV
-                </span>
-              </a>
-            </li>
-            <li>
-              <a href="contact.html" id="" class="skel-layers-ignoreHref">
-                <span class="icon ">
-                  Contact
-                </span>
-              </a>
-            </li>
-          </ul>
-        </nav>
-      </div>
-
+    <h1>📚 Scientific Paper Tracker</h1>
+    
+    <div style="text-align: right; margin-bottom: 10px;">
+        <button class="secondary" onclick="toggleApiSettings()" style="font-size: 0.8em;">⚙️ Configure AI</button>
+    </div>
+    <div id="api-section">
+        <p><small>Enter a Gemini API Key to enable auto-summarization. (Stored locally in browser)</small></p>
+        <input type="password" id="apiKey" placeholder="Paste Gemini API Key here (starts with AIza...)" onchange="saveApiKey()">
     </div>
 
-  <!-- Main -->
-  <div id="main">
-    <div id="stage">
-    <img src="files/butterfly1.png" id="follower1" alt="Our mouse follower image." />
-    <img src="files/butterfly2.png" id="follower2" alt="Our mouse follower image." />
-    <img src="files/butterfly3.png" id="follower3" alt="Our mouse follower image." />
-    <img src="files/butterfly4.png" id="follower4" alt="Our mouse follower image." />
-
-    <!-- Intro -->
-    <section id="top" class="one dark cover">
-      <div class="container" >
-
-        <header>
-          <p></p>
-          <h2 class="crayon article-titre-1 ">
-            <strong><font style="font-size:58px;">
-              <strong>Alexis Jacq, Ph.D.</strong></font>
-            </strong>
-          </h2>
-        </header>
-
-        <div class="crayon article-texte-1 ">
-          <p><font style="font-size:15px;">
-            After a Ph.D. in Human-Robot Interaction at EPFL in Lausanne and IST in Lisbon,</br>
-            I joined Google to work on Reinforcement Learning, inverse RL and Game theory.</br>
-            Since 2023, I worked on RL-based fine-tuning of LLMs from Human Feedback (RLHF).</br>
-          </br>
-          </font></p>
+    <div class="container">
+        <div class="sidebar">
+            <h3>Library Structure</h3>
+            <div id="tree-root"></div>
         </div>
-      </div>
-      </div>
-    </section>
-  </div>
 
-    <!-- Scripts -->
-    <script src="files/jquery_008.js"></script>
-    <script src="files/jquery_007.js"></script>
-    <script src="files/skel.js"></script>
-    <script src="files/util.js"></script>
-    <script src="files/main.js"></script>
+        <div class="main">
+            <h3>Add New Paper</h3>
+            <div class="btn-group">
+                <input type="text" id="inputUrl" placeholder="Paste Paper URL or Abstract text here...">
+                <button onclick="autoFillWithAI()">✨ Magic Fill (AI)</button>
+            </div>
 
-  </body>
+            <label>Title</label>
+            <input type="text" id="title">
+            
+            <label>Hierarchy (Path)</label>
+            <input type="text" id="path" placeholder="e.g. diffusion/post-training/distillation">
+            
+            <label>One-Sentence Summary</label>
+            <textarea id="summary" rows="2"></textarea>
+
+            <label>BibTeX</label>
+            <textarea id="bibtex" rows="5" style="font-family: monospace;"></textarea>
+
+            <div class="btn-group">
+                <button onclick="savePaper()">💾 Save Paper</button>
+                <button class="secondary" onclick="clearForm()">Clear</button>
+                <button class="secondary" onclick="exportBib()">⬇️ Export .bib</button>
+            </div>
+            
+            <hr>
+            
+            <div id="paper-display">
+                </div>
+        </div>
+    </div>
+
+    <script>
+        // --- DATA MANAGEMENT ---
+        let papers = JSON.parse(localStorage.getItem('myPapers')) || [];
+        let apiKey = localStorage.getItem('geminiKey') || '';
+
+        function savePaper() {
+            const title = document.getElementById('title').value;
+            if (!title) return alert("Title is required!");
+
+            const newPaper = {
+                id: Date.now(),
+                title: title,
+                path: document.getElementById('path').value || 'Uncategorized',
+                summary: document.getElementById('summary').value,
+                bibtex: document.getElementById('bibtex').value,
+                url: document.getElementById('inputUrl').value,
+                added: new Date().toISOString()
+            };
+
+            // Remove existing if updating
+            const existingIndex = papers.findIndex(p => p.title === title);
+            if (existingIndex > -1) papers.splice(existingIndex, 1);
+
+            papers.push(newPaper);
+            localStorage.setItem('myPapers', JSON.stringify(papers));
+            renderTree();
+            clearForm();
+        }
+
+        function loadPaper(id) {
+            const paper = papers.find(p => p.id === id);
+            if (!paper) return;
+
+            document.getElementById('title').value = paper.title;
+            document.getElementById('path').value = paper.path;
+            document.getElementById('summary').value = paper.summary;
+            document.getElementById('bibtex').value = paper.bibtex;
+            document.getElementById('inputUrl').value = paper.url;
+        }
+        
+        function deletePaper(id) {
+            if(confirm('Delete this paper?')) {
+                papers = papers.filter(p => p.id !== id);
+                localStorage.setItem('myPapers', JSON.stringify(papers));
+                renderTree();
+                clearForm();
+            }
+        }
+
+        function exportBib() {
+            const bibContent = papers.map(p => p.bibtex).join('\n\n');
+            const blob = new Blob([bibContent], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'library.bib';
+            a.click();
+        }
+
+        // --- TREE VIEW LOGIC ---
+        function renderTree() {
+            const root = document.getElementById('tree-root');
+            root.innerHTML = '';
+            
+            // Build hierarchy object
+            const tree = {};
+            papers.forEach(p => {
+                const parts = p.path.split('/').map(s => s.trim()).filter(s => s);
+                let current = tree;
+                parts.forEach((part, i) => {
+                    if (!current[part]) current[part] = { _files: [], _folders: {} };
+                    if (i === parts.length - 1) current[part]._files.push(p);
+                    current = current[part]._folders;
+                });
+            });
+
+            // Recursive render
+            function createNode(name, data, parentElement) {
+                const container = document.createElement('div');
+                container.className = 'tree-item';
+                
+                if (name) {
+                    const title = document.createElement('div');
+                    title.className = 'folder';
+                    title.textContent = name;
+                    container.appendChild(title);
+                }
+
+                // Render Files
+                if (data._files) {
+                    data._files.forEach(f => {
+                        const fileEl = document.createElement('span');
+                        fileEl.className = 'file';
+                        fileEl.textContent = '📄 ' + f.title;
+                        fileEl.onclick = () => loadPaper(f.id);
+                        container.appendChild(fileEl);
+                    });
+                }
+
+                // Render Subfolders
+                if (data._folders) {
+                    Object.keys(data._folders).forEach(key => {
+                        createNode(key, { _files: [], _folders: data._folders[key]._folders, ...data._folders[key] }, container);
+                    });
+                }
+                
+                parentElement.appendChild(container);
+            }
+
+            Object.keys(tree).forEach(k => createNode(k, tree[k], root));
+        }
+
+        // --- AI INTEGRATION (Gemini) ---
+        function toggleApiSettings() {
+            const el = document.getElementById('api-section');
+            el.style.display = el.style.display === 'none' ? 'block' : 'none';
+            document.getElementById('apiKey').value = apiKey;
+        }
+
+        function saveApiKey() {
+            apiKey = document.getElementById('apiKey').value;
+            localStorage.setItem('geminiKey', apiKey);
+        }
+
+        async function autoFillWithAI() {
+            const input = document.getElementById('inputUrl').value;
+            if (!apiKey) return alert("Please set your Gemini API Key in settings first!");
+            if (!input) return alert("Please enter a URL or abstract text.");
+
+            const button = document.querySelector('button[onclick="autoFillWithAI()"]');
+            const originalText = button.textContent;
+            button.textContent = "🤖 Analyzing...";
+            button.disabled = true;
+
+            const prompt = `
+            I have this paper input (URL or text): "${input}".
+            Please extract or generate:
+            1. The Title.
+            2. A suggested taxonomy path (e.g. field/subfield) based on topic.
+            3. A single sentence summary of the main contribution.
+            4. A standard BibTeX citation.
+            
+            Return ONLY a valid JSON object with keys: title, path, summary, bibtex.
+            `;
+
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }]
+                    })
+                });
+                
+                const data = await response.json();
+                let text = data.candidates[0].content.parts[0].text;
+                // Cleanup JSON if markdown blocks exist
+                text = text.replace(/```json/g, '').replace(/```/g, '');
+                
+                const result = JSON.parse(text);
+                
+                document.getElementById('title').value = result.title;
+                document.getElementById('path').value = result.path.toLowerCase().replace(/ /g, '_');
+                document.getElementById('summary').value = result.summary;
+                document.getElementById('bibtex').value = result.bibtex;
+                
+            } catch (e) {
+                console.error(e);
+                alert("Error calling AI: " + e.message);
+            } finally {
+                button.textContent = originalText;
+                button.disabled = false;
+            }
+        }
+
+        function clearForm() {
+            document.getElementById('title').value = '';
+            document.getElementById('path').value = '';
+            document.getElementById('summary').value = '';
+            document.getElementById('bibtex').value = '';
+            document.getElementById('inputUrl').value = '';
+        }
+
+        // Init
+        renderTree();
+    </script>
+</body>
 </html>
