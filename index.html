@@ -183,18 +183,32 @@
             // UI Updates
             const button = document.querySelector('button[onclick="autoFillWithAI()"]');
             const originalText = button.textContent;
-            button.textContent = "⏳ Sending...";
+            button.textContent = "⏳ Generating...";
             button.disabled = true;
             logStatus(`Sending request to ${model}...`, "neutral");
 
-            // --- IMPORTANT: THE PROMPT ---
-            // Note: Basic Gemini API cannot visit URLs. We ask it to guess from the URL string or process text.
+            // --- STRONGER PROMPT ---
             const prompt = `
-            I have this input: "${input}".
-            If it is a URL, try to infer the paper details from the URL slug. 
-            If it is text, summarize it.
-            
-            Return ONLY valid JSON: {"title": "...", "path": "field/subfield", "summary": "...", "bibtex": "..."}
+            You are a helpful Research Assistant and Citation Manager.
+            I have this input text (Abstract or URL): 
+            "${input}"
+
+            Please perform these 4 tasks:
+            1. Extract or infer the Title.
+            2. Classify it into a file path (e.g. "machine_learning/transformers/attention").
+            3. Write a one-sentence summary.
+            4. GENERATE A VALID BIBTEX CITATION. 
+               - If authors/year are missing in the text, infer them or use "Unknown" and the current year.
+               - Do not leave the BibTeX field empty. 
+               - Format it strictly for LaTeX use (e.g. @article{...}).
+
+            Return ONLY raw JSON (no markdown formatting) with these exact keys:
+            {
+              "title": "String",
+              "path": "String",
+              "summary": "String",
+              "bibtex": "String"
+            }
             `;
 
             // Setup Timeout (15 seconds)
@@ -209,7 +223,7 @@
                     signal: controller.signal
                 });
                 
-                clearTimeout(timeoutId); // Clear timeout if successful
+                clearTimeout(timeoutId); 
                 logStatus("Response received. Parsing...", "neutral");
 
                 const data = await response.json();
@@ -218,21 +232,28 @@
                 if (!data.candidates || !data.candidates[0].content) throw new Error("Safety Block or Empty Response.");
 
                 let text = data.candidates[0].content.parts[0].text;
-                text = text.replace(/```json/g, '').replace(/```/g, ''); 
+                // Aggressive cleanup to ensure JSON parses
+                text = text.replace(/```json/g, '').replace(/```/g, '').trim(); 
                 
                 const result = JSON.parse(text);
                 
                 document.getElementById('title').value = result.title || "";
                 document.getElementById('path').value = (result.path || "").toLowerCase().replace(/ /g, '_');
                 document.getElementById('summary').value = result.summary || "";
-                document.getElementById('bibtex').value = result.bibtex || "";
+                
+                // Extra check to ensure BibTeX isn't empty
+                if (result.bibtex && result.bibtex.length > 10) {
+                    document.getElementById('bibtex').value = result.bibtex;
+                } else {
+                    document.getElementById('bibtex').value = "@misc{unknown,\n  title={" + (result.title || "Unknown") + "},\n  author={Unknown},\n  year={2024}\n}";
+                }
                 
                 logStatus("✅ Done!", "success");
                 
             } catch (e) {
                 if (e.name === 'AbortError') {
-                    logStatus("❌ Timeout: Network took too long. (Firewall blocking POST?)", "error");
-                    alert("Timeout! \n\nYour network seems to be blocking the 'Send' request to Google AI. \n\nTry using a mobile hotspot or personal WiFi.");
+                    logStatus("❌ Timeout: Network blocked.", "error");
+                    alert("Timeout! Your network blocked the request.");
                 } else {
                     logStatus(`❌ Error: ${e.message}`, "error");
                     alert(`Error: ${e.message}`);
