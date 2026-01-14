@@ -38,4 +38,509 @@
         /* Search Box Styles */
         .search-box { display: flex; gap: 10px; margin-bottom: 10px; }
         .search-results { max-height: 200px; overflow-y: auto; border: 1px solid #eee; display: none; margin-bottom: 15px; border-radius: 4px; background: #fff; }
-        .result-item { padding: 10px; border-bottom: 1px solid #eee; cursor: pointer; transition: background
+        .result-item { padding: 10px; border-bottom: 1px solid #eee; cursor: pointer; transition: background 0.1s; }
+        .result-item:hover { background: #f0f9ff; }
+        .result-title { font-weight: bold; font-size: 0.95em; }
+        .result-meta { font-size: 0.8em; color: #666; }
+
+        .link-group { display: flex; gap: 10px; align-items: flex-start; }
+        .link-group input { flex-grow: 1; }
+        .link-btn { white-space: nowrap; padding: 8px 15px; height: 35px; background: #fff; border: 1px solid #ccc; color: #333; }
+        
+        .checkbox-wrapper { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; background: #f0f9ff; padding: 10px; border-radius: 4px; border: 1px solid #bae6fd; }
+        input[type="checkbox"] { transform: scale(1.5); cursor: pointer; }
+        
+        .btn-group { display: flex; gap: 10px; margin-bottom: 20px; }
+        button { background: var(--primary); color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; }
+        button.secondary { background: #64748b; }
+        button.danger { background: var(--danger); }
+        button:hover { opacity: 0.9; }
+        
+        /* Hidden Panels */
+        #api-section { margin-bottom: 20px; padding: 15px; background: #e0f2fe; border-radius: 4px; border: 1px solid #bae6fd; display: none; }
+        #fileInput { display: none; }
+    </style>
+</head>
+<body>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h1>📚 Scientific Paper Tracker</h1>
+        <div style="display: flex; gap: 10px;">
+            <a href="https://github.com/YOUR_USERNAME/YOUR_REPO" target="_blank" style="text-decoration:none;">
+                <button class="secondary">❓ Help / Readme</button>
+            </a>
+            <button class="secondary" onclick="toggleApiSettings()">⚙️ AI Settings</button>
+        </div>
+    </div>
+    
+    <div id="api-section">
+        <h3>AI Configuration</h3>
+        <label>1. API Key (Stored in browser)</label>
+        <input type="password" id="apiKey" placeholder="Paste 'AIza...' key here" onchange="saveSettings()">
+        <label>2. Select Model</label>
+        <div style="display:flex; gap:10px;">
+            <select id="modelSelect" onchange="saveSettings()">
+                <option value="gemini-1.5-flash">Default (gemini-1.5-flash)</option>
+            </select>
+            <button class="secondary" onclick="fetchModels()">🔄 Refresh Models</button>
+        </div>
+        <p id="connectionStatus" style="font-size: 0.9em; margin-top: 10px;"></p>
+    </div>
+
+    <div class="container">
+        <div class="sidebar">
+            <h3>Library</h3>
+            <div id="tree-root" class="tree-container"></div>
+            <div class="backup-section">
+                <small style="color:#666; display:block; margin-bottom:5px;">Data Backup</small>
+                <button class="secondary" style="width:100%; margin-bottom:5px;" onclick="downloadJson()">⬇️ Save Backup (JSON)</button>
+                <button class="secondary" style="width:100%;" onclick="triggerRestore()">⬆️ Load Backup (JSON)</button>
+                <input type="file" id="fileInput" accept=".json" onchange="loadJson(this)">
+            </div>
+        </div>
+
+        <div class="main">
+            <h3>Add New Paper</h3>
+            
+            <label>Search Paper (Semantic Scholar)</label>
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Type paper title..." onkeydown="if(event.key === 'Enter') searchPapers()">
+                <button onclick="searchPapers()">🔍 Search</button>
+            </div>
+            <div id="searchResults" class="search-results"></div>
+
+            <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+
+            <label>Title</label>
+            <input type="text" id="title">
+            
+            <label>Paper Link / URL</label>
+            <div class="link-group">
+                <input type="text" id="paperLink" placeholder="https://arxiv.org/...">
+                <button class="link-btn" onclick="openLink()">🔗 Open</button>
+            </div>
+            
+            <label>Hierarchy (Path)</label>
+            <input type="text" id="path" placeholder="e.g. diffusion/post-training">
+            
+            <div class="checkbox-wrapper">
+                <input type="checkbox" id="readStatus">
+                <label for="readStatus" style="font-weight:bold; color:#1e293b;">Mark as Read / Finished</label>
+            </div>
+            
+            <label>Abstract (Auto-filled) 
+                <button class="secondary" style="font-size:0.7em; padding: 2px 8px; margin-left:10px;" onclick="magicFillFromAbstract()">✨ Fill Data from Abstract</button>
+            </label>
+            <textarea id="abstractText" rows="4" placeholder="Paste abstract here if search fails..."></textarea>
+            
+            <label>One-Sentence Summary</label>
+            <div style="display: flex; gap: 10px; align-items: flex-start;">
+                <textarea id="summary" rows="2"></textarea>
+                <button class="secondary" style="height: 60px;" onclick="runAiSummary()">✨ AI Summarize</button>
+            </div>
+
+            <label>BibTeX</label>
+            <textarea id="bibtex" rows="5" style="font-family: monospace;"></textarea>
+
+            <div class="btn-group">
+                <button onclick="savePaper()">💾 Save Paper</button>
+                <button class="secondary" onclick="clearForm()">Clear</button>
+                <button class="danger" onclick="deleteCurrentPaper()">🗑️ Delete</button>
+                <button class="secondary" onclick="exportBib()">⬇️ Export .bib</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- DATA LAYER ---
+        let papers = JSON.parse(localStorage.getItem('myPapers')) || [];
+        let expandedPaths = new Set();
+        
+        // --- API & SETTINGS ---
+        function getApiKey() { return localStorage.getItem('geminiKey') || ''; }
+        function getModel() { return localStorage.getItem('geminiModel') || 'gemini-1.5-flash'; }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const key = getApiKey();
+            if(key) document.getElementById('apiKey').value = key;
+            const savedModel = getModel();
+            const select = document.getElementById('modelSelect');
+            if(savedModel && select.options.length === 1) {
+                const opt = document.createElement('option');
+                opt.value = savedModel;
+                opt.text = `Saved: ${savedModel}`;
+                opt.selected = true;
+                select.add(opt);
+            }
+            renderTree();
+        });
+
+        function saveSettings() {
+            localStorage.setItem('geminiKey', document.getElementById('apiKey').value);
+            localStorage.setItem('geminiModel', document.getElementById('modelSelect').value);
+        }
+
+        function toggleApiSettings() {
+            const el = document.getElementById('api-section');
+            el.style.display = el.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function logStatus(msg, type='neutral') {
+            const statusEl = document.getElementById('connectionStatus');
+            const color = type === 'error' ? 'red' : (type === 'success' ? 'green' : '#666');
+            statusEl.innerHTML = `<span style="color:${color}; font-weight:bold">${msg}</span>`;
+        }
+
+        // --- SEMANTIC SCHOLAR SEARCH ---
+        async function searchPapers() {
+            const query = document.getElementById('searchInput').value;
+            if(!query) return alert("Please enter a title.");
+            
+            const resultsDiv = document.getElementById('searchResults');
+            resultsDiv.style.display = 'block';
+            resultsDiv.innerHTML = '<div style="padding:10px; color:#666;">🔎 Searching Semantic Scholar...</div>';
+
+            try {
+                // Request limited fields to be lightweight
+                const url = `https://api.semanticscholar.org/graph/v1/paper/search?query=${encodeURIComponent(query)}&limit=5&fields=title,authors,year,abstract,url,venue,openAccessPdf`;
+                const response = await fetch(url);
+
+                if (response.status === 429) throw new Error("⚠️ Too Many Requests. Wait 2 mins.");
+                if (response.status === 403) throw new Error("🚫 Blocked by Firewall. Use 'Fill Data from Abstract' instead.");
+                if (!response.ok) throw new Error(`⚠️ Server Error (${response.status})`);
+
+                const data = await response.json();
+                
+                if(!data.data || data.data.length === 0) {
+                    resultsDiv.innerHTML = '<div style="padding:10px;">No papers found.</div>';
+                    return;
+                }
+
+                resultsDiv.innerHTML = '';
+                data.data.forEach(paper => {
+                    const el = document.createElement('div');
+                    el.className = 'result-item';
+                    const authors = paper.authors ? paper.authors.map(a => a.name).slice(0, 3).join(', ') : 'Unknown';
+                    // Prefer OpenAccess PDF link, else standard URL
+                    paper.finalLink = (paper.openAccessPdf && paper.openAccessPdf.url) ? paper.openAccessPdf.url : paper.url;
+
+                    el.innerHTML = `
+                        <div class="result-title">${paper.title}</div>
+                        <div class="result-meta">${paper.year || 'No Year'} • ${authors}</div>
+                    `;
+                    el.onclick = () => selectPaper(paper);
+                    resultsDiv.appendChild(el);
+                });
+
+            } catch (e) {
+                console.error(e);
+                resultsDiv.innerHTML = `<div style="padding:10px; color:#dc2626; font-weight:bold;">${e.message}</div>`;
+            }
+        }
+
+        function selectPaper(paper) {
+            document.getElementById('title').value = paper.title;
+            document.getElementById('abstractText').value = paper.abstract || "";
+            document.getElementById('paperLink').value = paper.finalLink || "";
+
+            // Generate BibTeX
+            const firstAuthor = paper.authors && paper.authors.length > 0 ? paper.authors[0].name.split(' ').pop() : 'unknown';
+            const year = paper.year || '2024';
+            const citationKey = `${firstAuthor.toLowerCase()}${year}${paper.title.split(' ')[0].toLowerCase()}`;
+            let authorList = paper.authors ? paper.authors.map(a => a.name).join(' and ') : 'Unknown';
+            
+            const bib = `@article{${citationKey},
+  title={${paper.title}},
+  author={${authorList}},
+  journal={${paper.venue || 'ArXiv'}},
+  year={${year}},
+  url={${paper.finalLink || ''}}
+}`;
+            document.getElementById('bibtex').value = bib;
+            document.getElementById('searchResults').style.display = 'none';
+        }
+
+        // --- AI LOGIC (Summary & Magic Fill) ---
+        async function runAiSummary() {
+            const abstract = document.getElementById('abstractText').value;
+            if(!abstract) return alert("No abstract to summarize.");
+            const button = document.querySelector('button[onclick="runAiSummary()"]');
+            const originalText = button.textContent;
+            button.textContent = "⏳...";
+
+            const prompt = `Summarize this in one insightful sentence: "${abstract.substring(0, 1000)}..." Return JSON: {"summary": "string"}`;
+            await callGemini(prompt, (result) => {
+                document.getElementById('summary').value = result.summary;
+                button.textContent = originalText;
+            });
+        }
+
+        async function magicFillFromAbstract() {
+            const abstract = document.getElementById('abstractText').value;
+            if(!abstract) return alert("Please paste an abstract first.");
+            const button = document.querySelector('button[onclick="magicFillFromAbstract()"]');
+            button.textContent = "⏳ Parsing...";
+            
+            const prompt = `
+            Read this abstract/text: "${abstract.substring(0, 1500)}..."
+            Extract: 1. Title, 2. A one-sentence summary, 3. A BibTeX citation (guess authors/year if missing).
+            Return JSON: {"title": "...", "summary": "...", "bibtex": "..."}
+            `;
+            await callGemini(prompt, (result) => {
+                document.getElementById('title').value = result.title || "";
+                document.getElementById('summary').value = result.summary || "";
+                document.getElementById('bibtex').value = result.bibtex || "";
+                button.textContent = "✨ Fill Data from Abstract";
+            });
+        }
+
+        async function callGemini(promptText, callback) {
+            const apiKey = getApiKey();
+            const model = getModel();
+            if(!apiKey) return alert("Please configure API Key.");
+
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
+                });
+                const data = await response.json();
+                if(data.error) throw new Error(data.error.message);
+                
+                let text = data.candidates[0].content.parts[0].text.replace(/```json/g, '').replace(/```/g, '').trim();
+                callback(JSON.parse(text));
+            } catch (e) {
+                console.error(e);
+                alert("AI Error: " + e.message);
+            }
+        }
+
+        // --- APP LOGIC ---
+        function openLink() {
+            const url = document.getElementById('paperLink').value;
+            if(url) window.open(url, '_blank');
+            else alert("No link entered.");
+        }
+
+        function savePaper() {
+            const title = document.getElementById('title').value;
+            if (!title) return alert("Title is required!");
+
+            const newPaper = {
+                id: Date.now(),
+                title: title,
+                path: document.getElementById('path').value || 'Uncategorized',
+                abstract: document.getElementById('abstractText').value,
+                summary: document.getElementById('summary').value,
+                bibtex: document.getElementById('bibtex').value,
+                link: document.getElementById('paperLink').value,
+                read: document.getElementById('readStatus').checked
+            };
+
+            const existingIndex = papers.findIndex(p => p.title === title);
+            if (existingIndex > -1) {
+                newPaper.id = papers[existingIndex].id;
+                papers.splice(existingIndex, 1);
+            }
+            
+            papers.push(newPaper);
+            localStorage.setItem('myPapers', JSON.stringify(papers));
+            renderTree();
+            clearForm();
+        }
+
+        function loadPaper(id) {
+            const paper = papers.find(p => p.id === id);
+            if (!paper) return;
+            document.getElementById('title').value = paper.title;
+            document.getElementById('path').value = paper.path;
+            document.getElementById('abstractText').value = paper.abstract || "";
+            document.getElementById('summary').value = paper.summary;
+            document.getElementById('bibtex').value = paper.bibtex;
+            document.getElementById('paperLink').value = paper.link || "";
+            document.getElementById('readStatus').checked = paper.read || false;
+            document.getElementById('searchResults').style.display = 'none';
+        }
+
+        function deleteCurrentPaper() {
+            const title = document.getElementById('title').value;
+            if (!title) return;
+            const existingIndex = papers.findIndex(p => p.title === title);
+            if (existingIndex > -1 && confirm("Delete '" + title + "'?")) {
+                papers.splice(existingIndex, 1);
+                localStorage.setItem('myPapers', JSON.stringify(papers));
+                renderTree();
+                clearForm();
+            }
+        }
+
+        function clearForm() {
+            document.getElementById('title').value = '';
+            document.getElementById('path').value = '';
+            document.getElementById('abstractText').value = '';
+            document.getElementById('summary').value = '';
+            document.getElementById('bibtex').value = '';
+            document.getElementById('paperLink').value = '';
+            document.getElementById('searchInput').value = '';
+            document.getElementById('searchResults').style.display = 'none';
+            document.getElementById('readStatus').checked = false;
+        }
+
+        function exportBib() {
+            const bibContent = papers.map(p => p.bibtex).join('\n\n');
+            const blob = new Blob([bibContent], { type: 'text/plain' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'library.bib';
+            a.click();
+        }
+
+        // --- BACKUP & RESTORE ---
+        function downloadJson() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(papers, null, 2));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", "my_papers_backup.json");
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+        }
+        function triggerRestore() { document.getElementById('fileInput').click(); }
+        function loadJson(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const loadedPapers = JSON.parse(e.target.result);
+                    if (Array.isArray(loadedPapers)) {
+                        if(confirm(`Found ${loadedPapers.length} papers. Replace library?`)) {
+                            papers = loadedPapers;
+                            localStorage.setItem('myPapers', JSON.stringify(papers));
+                            renderTree();
+                            alert("Restored!");
+                        }
+                    } else alert("Invalid JSON.");
+                } catch (err) { alert("Error: " + err.message); }
+                input.value = ''; 
+            };
+            reader.readAsText(file);
+        }
+
+        // --- MODEL FETCHER ---
+        async function fetchModels() {
+            const key = document.getElementById('apiKey').value;
+            if(!key) return alert("Please enter an API Key first.");
+            logStatus("Connecting...", "neutral");
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
+                const data = await response.json();
+                if(data.error) throw new Error(data.error.message);
+                const select = document.getElementById('modelSelect');
+                select.innerHTML = '';
+                const validModels = data.models.filter(m => m.supportedGenerationMethods?.includes("generateContent"));
+                validModels.forEach(m => {
+                    const cleanName = m.name.replace('models/', '');
+                    const option = document.createElement('option');
+                    option.value = cleanName;
+                    option.text = `${m.displayName} (${cleanName})`;
+                    if(cleanName.includes('1.5-flash')) option.selected = true;
+                    select.appendChild(option);
+                });
+                logStatus(`✅ Found ${validModels.length} models.`, "success");
+                saveSettings(); 
+            } catch (e) { logStatus(`❌ Error: ${e.message}`, "error"); }
+        }
+
+        // --- TREE RENDER ---
+        function renderTree() {
+            const root = document.getElementById('tree-root');
+            root.innerHTML = '';
+            const tree = {};
+            
+            papers.forEach(p => {
+                const parts = p.path.split('/').map(s => s.trim()).filter(s => s);
+                let current = tree;
+                parts.forEach((part, i) => {
+                    if (!current[part]) current[part] = { _files: [], _folders: {} };
+                    if (i === parts.length - 1) current[part]._files.push(p);
+                    current = current[part]._folders;
+                });
+            });
+
+            function createNode(name, data, parentElement, fullPath) {
+                const itemContainer = document.createElement('div');
+                itemContainer.className = 'tree-item';
+
+                // RENDER FOLDER
+                if (name) {
+                    const folderDiv = document.createElement('div');
+                    folderDiv.className = 'folder';
+                    const icon = document.createElement('span');
+                    icon.textContent = '📂';
+                    folderDiv.appendChild(icon);
+                    folderDiv.appendChild(document.createTextNode(name));
+
+                    const isOpen = expandedPaths.has(fullPath);
+                    if(isOpen) folderDiv.classList.add('open');
+                    
+                    folderDiv.onclick = (e) => {
+                        const childrenEl = itemContainer.querySelector('.children-container');
+                        if(childrenEl) {
+                            if(childrenEl.classList.contains('expanded')) {
+                                childrenEl.classList.remove('expanded');
+                                folderDiv.classList.remove('open');
+                                expandedPaths.delete(fullPath);
+                            } else {
+                                childrenEl.classList.add('expanded');
+                                folderDiv.classList.add('open');
+                                expandedPaths.add(fullPath);
+                            }
+                        }
+                    };
+                    itemContainer.appendChild(folderDiv);
+                }
+
+                const childrenContainer = document.createElement('div');
+                childrenContainer.className = 'children-container';
+                if(expandedPaths.has(fullPath) || !name) {
+                    childrenContainer.classList.add('expanded');
+                }
+
+                // SORT & RENDER FILES
+                if (data._files) {
+                    const sortedFiles = data._files.sort((a, b) => a.title.localeCompare(b.title));
+                    sortedFiles.forEach(f => {
+                        const fileEl = document.createElement('span');
+                        const isRead = f.read === true;
+                        fileEl.className = 'file ' + (isRead ? 'status-read' : 'status-unread');
+                        fileEl.textContent = f.title;
+                        fileEl.onclick = () => loadPaper(f.id);
+                        childrenContainer.appendChild(fileEl);
+                    });
+                }
+
+                // SORT & RENDER SUBFOLDERS
+                if (data._folders) {
+                    const sortedKeys = Object.keys(data._folders).sort();
+                    sortedKeys.forEach(key => {
+                        const nextPath = fullPath ? `${fullPath}/${key}` : key;
+                        createNode(key, { 
+                            _files: [], 
+                            _folders: data._folders[key]._folders, 
+                            ...data._folders[key] 
+                        }, childrenContainer, nextPath);
+                    });
+                }
+                
+                if (childrenContainer.hasChildNodes()) {
+                    itemContainer.appendChild(childrenContainer);
+                }
+                parentElement.appendChild(itemContainer);
+            }
+            Object.keys(tree).sort().forEach(k => createNode(k, tree[k], root, k));
+        }
+    </script>
+</body>
+</html>
