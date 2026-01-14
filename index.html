@@ -14,21 +14,19 @@
         .tree-container { flex-grow: 1; overflow-y: auto; margin-bottom: 15px; }
         .backup-section { border-top: 1px solid #eee; padding-top: 15px; }
         
-        /* Tree Visualization (Updated for Collapsing) */
+        /* Tree Visualization */
         .tree-item { margin-top: 5px; }
         
         .folder { font-weight: bold; cursor: pointer; color: #475569; font-size: 0.95em; user-select: none; display: flex; align-items: center; gap: 5px;}
         .folder:hover { color: var(--primary); }
-        
-        /* Dynamic Arrows for Folders */
         .folder::before { content: "▶"; font-size: 0.7em; display: inline-block; width: 15px; transition: transform 0.2s; }
         .folder.open::before { content: "▼"; transform: rotate(0deg); }
         .folder-icon { margin-right: 5px; }
 
-        /* The Container that hides/shows children */
+        /* Children Container */
         .children-container { 
             display: none; 
-            margin-left: 9px; /* Align with arrow */
+            margin-left: 9px; 
             padding-left: 15px; 
             border-left: 1px solid #e2e8f0;
         }
@@ -38,7 +36,6 @@
         .file { cursor: pointer; font-size: 0.9em; margin-top: 6px; display: block; text-decoration: none; padding: 2px 0; margin-left: 5px;}
         .file:hover { text-decoration: underline; }
         
-        /* Status Colors */
         .status-unread { color: var(--primary); }
         .status-unread::before { content: "📖 "; }
         .status-read { color: var(--success); opacity: 0.8; }
@@ -135,7 +132,7 @@
     <script>
         // --- DATA LAYER ---
         let papers = JSON.parse(localStorage.getItem('myPapers')) || [];
-        let expandedPaths = new Set(); // State to track open folders
+        let expandedPaths = new Set();
         
         // --- API SETTINGS LAYER ---
         function getApiKey() { return localStorage.getItem('geminiKey') || ''; }
@@ -354,7 +351,7 @@
             a.click();
         }
 
-        // --- NEW COLLAPSIBLE TREE LOGIC ---
+        // --- RENDERING LOGIC (ALPHABETICAL) ---
         function renderTree() {
             const root = document.getElementById('tree-root');
             root.innerHTML = '';
@@ -371,7 +368,7 @@
                 });
             });
 
-            // Recursive Renderer with "fullPath" to track state
+            // Recursive Renderer with Sorting
             function createNode(name, data, parentElement, fullPath) {
                 const itemContainer = document.createElement('div');
                 itemContainer.className = 'tree-item';
@@ -381,7 +378,6 @@
                     const folderDiv = document.createElement('div');
                     folderDiv.className = 'folder';
                     
-                    // Folder Icon
                     const icon = document.createElement('span');
                     icon.className = 'folder-icon';
                     icon.textContent = '📂';
@@ -389,14 +385,12 @@
                     folderDiv.appendChild(icon);
                     folderDiv.appendChild(document.createTextNode(name));
 
-                    // Toggle Logic
                     const isOpen = expandedPaths.has(fullPath);
                     if(isOpen) folderDiv.classList.add('open');
                     
                     folderDiv.onclick = (e) => {
                         const childrenEl = itemContainer.querySelector('.children-container');
                         if(childrenEl) {
-                            // Toggle State
                             if(childrenEl.classList.contains('expanded')) {
                                 childrenEl.classList.remove('expanded');
                                 folderDiv.classList.remove('open');
@@ -411,17 +405,18 @@
                     itemContainer.appendChild(folderDiv);
                 }
 
-                // 2. Render CHILDREN Wrapper (Files + Subfolders)
-                // If it's the root level, always show, otherwise use display logic
+                // 2. Render CHILDREN (Sorted)
                 const childrenContainer = document.createElement('div');
                 childrenContainer.className = 'children-container';
                 if(expandedPaths.has(fullPath) || !name) {
                     childrenContainer.classList.add('expanded');
                 }
 
-                // Add Files
+                // SORT and ADD FILES
                 if (data._files) {
-                    data._files.forEach(f => {
+                    // Alphabetical sort by Title
+                    const sortedFiles = data._files.sort((a, b) => a.title.localeCompare(b.title));
+                    sortedFiles.forEach(f => {
                         const fileEl = document.createElement('span');
                         const isRead = f.read === true;
                         fileEl.className = 'file ' + (isRead ? 'status-read' : 'status-unread');
@@ -431,9 +426,11 @@
                     });
                 }
 
-                // Add Subfolders (Recursive)
+                // SORT and ADD SUBFOLDERS
                 if (data._folders) {
-                    Object.keys(data._folders).forEach(key => {
+                    // Alphabetical sort by Folder Name
+                    const sortedKeys = Object.keys(data._folders).sort();
+                    sortedKeys.forEach(key => {
                         const nextPath = fullPath ? `${fullPath}/${key}` : key;
                         createNode(key, { 
                             _files: [], 
@@ -443,7 +440,6 @@
                     });
                 }
                 
-                // Only append children container if not empty
                 if (childrenContainer.hasChildNodes()) {
                     itemContainer.appendChild(childrenContainer);
                 }
@@ -451,8 +447,8 @@
                 parentElement.appendChild(itemContainer);
             }
 
-            // Start recursion
-            Object.keys(tree).forEach(k => createNode(k, tree[k], root, k));
+            // Start recursion with sorted root keys
+            Object.keys(tree).sort().forEach(k => createNode(k, tree[k], root, k));
         }
     </script>
 </body>
