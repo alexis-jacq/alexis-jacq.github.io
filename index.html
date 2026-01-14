@@ -9,7 +9,7 @@
         body { font-family: -apple-system, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; background: var(--bg); color: var(--text); }
         .container { display: grid; grid-template-columns: 300px 1fr; gap: 20px; }
         
-        /* Sidebar (Tree) */
+        /* Sidebar */
         .sidebar { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); height: 80vh; overflow-y: auto; }
         .tree-item { margin-left: 15px; border-left: 1px solid #ddd; padding-left: 10px; margin-top: 5px; }
         .folder { font-weight: bold; cursor: pointer; color: #475569; }
@@ -23,32 +23,39 @@
         .btn-group { display: flex; gap: 10px; margin-bottom: 20px; }
         button { background: var(--primary); color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; }
         button.secondary { background: #64748b; }
-        button.danger { background: #ef4444; }
         button:hover { opacity: 0.9; }
         
-        /* API Key Modal */
-        #api-section { margin-bottom: 20px; padding: 10px; background: #e0f2fe; border-radius: 4px; display: none; }
-        
-        .paper-card { border: 1px solid #e2e8f0; padding: 15px; margin-bottom: 15px; border-radius: 6px; }
-        .citation-box { background: #f1f5f9; padding: 10px; font-family: monospace; font-size: 0.85em; white-space: pre-wrap; }
-        .tag { display: inline-block; background: #e2e8f0; padding: 2px 8px; border-radius: 12px; font-size: 0.8em; margin-bottom: 10px; }
+        /* API Config Box */
+        #api-section { margin-bottom: 20px; padding: 15px; background: #e0f2fe; border-radius: 4px; border: 1px solid #bae6fd; display: none; }
+        .status-ok { color: green; font-weight: bold; }
+        .status-err { color: red; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <h1>📚 Scientific Paper Tracker</h1>
-    
-    <div style="text-align: right; margin-bottom: 10px;">
-        <button class="secondary" onclick="toggleApiSettings()" style="font-size: 0.8em;">⚙️ Configure AI</button>
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h1>📚 Scientific Paper Tracker</h1>
+        <button class="secondary" onclick="toggleApiSettings()">⚙️ AI Settings</button>
     </div>
+    
     <div id="api-section">
-        <p><small>Enter a Gemini API Key to enable auto-summarization. (Stored locally in browser)</small></p>
-        <input type="password" id="apiKey" placeholder="Paste Gemini API Key here (starts with AIza...)" onchange="saveApiKey()">
+        <h3>AI Configuration</h3>
+        <label>1. API Key (Stored in browser)</label>
+        <input type="password" id="apiKey" placeholder="Paste 'AIza...' key here" onchange="saveSettings()">
+        
+        <label>2. Select Model</label>
+        <div style="display:flex; gap:10px;">
+            <select id="modelSelect" onchange="saveSettings()">
+                <option value="gemini-1.5-flash">Default (gemini-1.5-flash)</option>
+            </select>
+            <button class="secondary" onclick="fetchModels()">🔄 Refresh Models</button>
+        </div>
+        <p id="connectionStatus" style="font-size: 0.9em; margin-top: 10px;"></p>
     </div>
 
     <div class="container">
         <div class="sidebar">
-            <h3>Library Structure</h3>
+            <h3>Library</h3>
             <div id="tree-root"></div>
         </div>
 
@@ -56,14 +63,14 @@
             <h3>Add New Paper</h3>
             <div class="btn-group">
                 <input type="text" id="inputUrl" placeholder="Paste Paper URL or Abstract text here...">
-                <button onclick="autoFillWithAI()">✨ Magic Fill (AI)</button>
+                <button onclick="autoFillWithAI()">✨ Magic Fill</button>
             </div>
 
             <label>Title</label>
             <input type="text" id="title">
             
             <label>Hierarchy (Path)</label>
-            <input type="text" id="path" placeholder="e.g. diffusion/post-training/distillation">
+            <input type="text" id="path" placeholder="e.g. diffusion/post-training">
             
             <label>One-Sentence Summary</label>
             <textarea id="summary" rows="2"></textarea>
@@ -76,35 +83,153 @@
                 <button class="secondary" onclick="clearForm()">Clear</button>
                 <button class="secondary" onclick="exportBib()">⬇️ Export .bib</button>
             </div>
-            
-            <hr>
-            
-            <div id="paper-display">
-                </div>
         </div>
     </div>
 
     <script>
-        // --- DATA MANAGEMENT ---
+        // --- DATA LAYER ---
         let papers = JSON.parse(localStorage.getItem('myPapers')) || [];
         
-        // We read the key directly from the input now to avoid save errors
-        function getApiKey() {
-            return document.getElementById('apiKey').value || localStorage.getItem('geminiKey') || '';
+        // --- API SETTINGS LAYER ---
+        function getApiKey() { return localStorage.getItem('geminiKey') || ''; }
+        function getModel() { return localStorage.getItem('geminiModel') || 'gemini-1.5-flash'; }
+
+        // Load saved settings on startup
+        document.addEventListener('DOMContentLoaded', () => {
+            const key = getApiKey();
+            const model = getModel();
+            if(key) document.getElementById('apiKey').value = key;
+            
+            // Populate selector with saved model if available, else default
+            const select = document.getElementById('modelSelect');
+            if(model && select.options.length === 1) {
+                const opt = document.createElement('option');
+                opt.value = model;
+                opt.text = `Saved: ${model}`;
+                opt.selected = true;
+                select.add(opt);
+            }
+            renderTree();
+        });
+
+        function saveSettings() {
+            localStorage.setItem('geminiKey', document.getElementById('apiKey').value);
+            localStorage.setItem('geminiModel', document.getElementById('modelSelect').value);
         }
 
-        function saveApiKey() {
+        function toggleApiSettings() {
+            const el = document.getElementById('api-section');
+            el.style.display = el.style.display === 'none' ? 'block' : 'none';
+        }
+
+        // --- MODEL FETCHER (The Fix for your Error) ---
+        async function fetchModels() {
             const key = document.getElementById('apiKey').value;
-            if(key) {
-                localStorage.setItem('geminiKey', key);
+            const statusEl = document.getElementById('connectionStatus');
+            const select = document.getElementById('modelSelect');
+            
+            if(!key) return alert("Please enter an API Key first.");
+            
+            statusEl.textContent = "Connecting to Google...";
+            statusEl.className = "";
+
+            try {
+                // We use the 'list' endpoint to see what is ACTUALLY available to you
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
+                const data = await response.json();
+
+                if(data.error) throw new Error(data.error.message);
+                
+                // Clear and populate dropdown
+                select.innerHTML = '';
+                
+                // Filter for models that support 'generateContent'
+                const validModels = data.models.filter(m => 
+                    m.supportedGenerationMethods && m.supportedGenerationMethods.includes("generateContent")
+                );
+
+                validModels.forEach(m => {
+                    const cleanName = m.name.replace('models/', '');
+                    const option = document.createElement('option');
+                    option.value = cleanName;
+                    option.text = `${m.displayName} (${cleanName})`;
+                    // Auto-select the 'latest' flash model if found
+                    if(cleanName.includes('1.5-flash-latest')) option.selected = true;
+                    select.appendChild(option);
+                });
+
+                statusEl.innerHTML = `<span class="status-ok">✅ Success! Found ${validModels.length} models. Saved.</span>`;
+                saveSettings(); // Save the auto-selected model
+
+            } catch (e) {
+                statusEl.innerHTML = `<span class="status-err">❌ Error: ${e.message}</span>`;
             }
         }
 
-        // Initialize Input if key exists
-        if(localStorage.getItem('geminiKey')) {
-            document.getElementById('apiKey').value = localStorage.getItem('geminiKey');
+        // --- AI LOGIC ---
+        async function autoFillWithAI() {
+            const apiKey = getApiKey();
+            const model = getModel();
+            const input = document.getElementById('inputUrl').value;
+
+            if (!apiKey) {
+                toggleApiSettings();
+                return alert("Please configure your API Key first.");
+            }
+            if (!input) return alert("Please enter a URL or abstract text.");
+
+            const button = document.querySelector('button[onclick="autoFillWithAI()"]');
+            const originalText = button.textContent;
+            button.textContent = "🤖 Reading...";
+            button.disabled = true;
+
+            const prompt = `
+            I have this paper input (URL or text): "${input}".
+            Please extract or generate:
+            1. The Title.
+            2. A suggested taxonomy path (e.g. field/subfield) based on topic.
+            3. A single sentence summary of the main contribution.
+            4. A standard BibTeX citation.
+            
+            Return ONLY a valid JSON object with keys: title, path, summary, bibtex.
+            DO NOT use markdown formatting like \`\`\`json. Just the raw JSON string.
+            `;
+
+            try {
+                // Dynamic URL based on selected model
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }]
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.error) throw new Error(data.error.message);
+                if (!data.candidates || !data.candidates[0].content) throw new Error("Blocked by safety filters or no response.");
+
+                let text = data.candidates[0].content.parts[0].text;
+                text = text.replace(/```json/g, '').replace(/```/g, ''); // Clean markdown
+                
+                const result = JSON.parse(text);
+                
+                document.getElementById('title').value = result.title;
+                document.getElementById('path').value = result.path.toLowerCase().replace(/ /g, '_');
+                document.getElementById('summary').value = result.summary;
+                document.getElementById('bibtex').value = result.bibtex;
+                
+            } catch (e) {
+                console.error(e);
+                alert("AI Error: " + e.message);
+            } finally {
+                button.textContent = originalText;
+                button.disabled = false;
+            }
         }
 
+        // --- APP LOGIC (Save/Load/Tree) ---
         function savePaper() {
             const title = document.getElementById('title').value;
             if (!title) return alert("Title is required!");
@@ -116,12 +241,10 @@
                 summary: document.getElementById('summary').value,
                 bibtex: document.getElementById('bibtex').value,
                 url: document.getElementById('inputUrl').value,
-                added: new Date().toISOString()
             };
 
             const existingIndex = papers.findIndex(p => p.title === title);
             if (existingIndex > -1) papers.splice(existingIndex, 1);
-
             papers.push(newPaper);
             localStorage.setItem('myPapers', JSON.stringify(papers));
             renderTree();
@@ -138,17 +261,23 @@
             document.getElementById('inputUrl').value = paper.url;
         }
 
+        function clearForm() {
+            document.getElementById('title').value = '';
+            document.getElementById('path').value = '';
+            document.getElementById('summary').value = '';
+            document.getElementById('bibtex').value = '';
+            document.getElementById('inputUrl').value = '';
+        }
+        
         function exportBib() {
             const bibContent = papers.map(p => p.bibtex).join('\n\n');
             const blob = new Blob([bibContent], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.href = url;
+            a.href = URL.createObjectURL(blob);
             a.download = 'library.bib';
             a.click();
         }
 
-        // --- TREE VIEW LOGIC ---
         function renderTree() {
             const root = document.getElementById('tree-root');
             root.innerHTML = '';
@@ -182,100 +311,12 @@
                     });
                 }
                 if (data._folders) {
-                    Object.keys(data._folders).forEach(key => {
-                        createNode(key, { _files: [], _folders: data._folders[key]._folders, ...data._folders[key] }, container);
-                    });
+                    Object.keys(data._folders).forEach(key => createNode(key, { _files: [], _folders: data._folders[key]._folders, ...data._folders[key] }, container));
                 }
                 parentElement.appendChild(container);
             }
             Object.keys(tree).forEach(k => createNode(k, tree[k], root));
         }
-
-        // --- AI INTEGRATION (FIXED) ---
-        function toggleApiSettings() {
-            const el = document.getElementById('api-section');
-            el.style.display = el.style.display === 'none' ? 'block' : 'none';
-        }
-
-        async function autoFillWithAI() {
-            saveApiKey(); // Ensure key is saved before running
-            const apiKey = getApiKey();
-            const input = document.getElementById('inputUrl').value;
-
-            if (!apiKey) return alert("Please enter your Gemini API Key in the settings!");
-            if (!input) return alert("Please enter a URL or abstract text.");
-
-            const button = document.querySelector('button[onclick="autoFillWithAI()"]');
-            const originalText = button.textContent;
-            button.textContent = "🤖 Analyzing...";
-            button.disabled = true;
-
-            const prompt = `
-            I have this paper input (URL or text): "${input}".
-            Please extract or generate:
-            1. The Title.
-            2. A suggested taxonomy path (e.g. field/subfield) based on topic.
-            3. A single sentence summary of the main contribution.
-            4. A standard BibTeX citation.
-            
-            Return ONLY a valid JSON object with keys: title, path, summary, bibtex.
-            DO NOT use markdown formatting like \`\`\`json. Just the raw JSON string.
-            `;
-
-            try {
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ text: prompt }] }]
-                    })
-                });
-                
-                const data = await response.json();
-                
-                // --- ERROR CATCHING BLOCK ---
-                if (data.error) {
-                    throw new Error("Google API Error: " + data.error.message);
-                }
-                if (!data.candidates || data.candidates.length === 0) {
-                     // Check for safety blocks
-                     if (data.promptFeedback) {
-                        throw new Error("Safety Block: " + JSON.stringify(data.promptFeedback));
-                     }
-                     throw new Error("No response from AI. Try pasting the Abstract text instead of the URL.");
-                }
-                // -----------------------------
-
-                let text = data.candidates[0].content.parts[0].text;
-                // Cleanup JSON if markdown blocks exist
-                text = text.replace(/```json/g, '').replace(/```/g, '');
-                
-                const result = JSON.parse(text);
-                
-                document.getElementById('title').value = result.title;
-                document.getElementById('path').value = result.path.toLowerCase().replace(/ /g, '_');
-                document.getElementById('summary').value = result.summary;
-                document.getElementById('bibtex').value = result.bibtex;
-                
-            } catch (e) {
-                console.error(e);
-                alert("Error: " + e.message);
-            } finally {
-                button.textContent = originalText;
-                button.disabled = false;
-            }
-        }
-
-        function clearForm() {
-            document.getElementById('title').value = '';
-            document.getElementById('path').value = '';
-            document.getElementById('summary').value = '';
-            document.getElementById('bibtex').value = '';
-            document.getElementById('inputUrl').value = '';
-        }
-
-        // Init
-        renderTree();
     </script>
 </body>
 </html>
