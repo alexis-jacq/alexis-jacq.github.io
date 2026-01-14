@@ -113,10 +113,7 @@
             </div>
             
             <label>Hierarchy (Path)</label>
-            <div style="display: flex; gap: 10px;">
-                <input type="text" id="path" placeholder="e.g. diffusion/post-training">
-                <button class="secondary" style="width: 120px;" onclick="runAiCategorization()">✨ AI Path</button>
-            </div>
+            <input type="text" id="path" placeholder="e.g. diffusion/post-training">
             
             <div class="checkbox-wrapper">
                 <input type="checkbox" id="readStatus">
@@ -232,7 +229,7 @@
             if(paper.openAccessPdf && paper.openAccessPdf.url) link = paper.openAccessPdf.url;
             document.getElementById('paperLink').value = link || "";
 
-            // 3. Generate BibTeX manually (Semantic Scholar API sends JSON)
+            // 3. Generate BibTeX manually
             const firstAuthor = paper.authors && paper.authors.length > 0 ? paper.authors[0].name.split(' ').pop() : 'unknown';
             const year = paper.year || '2024';
             const citationKey = `${firstAuthor.toLowerCase()}${year}${paper.title.split(' ')[0].toLowerCase()}`;
@@ -250,48 +247,22 @@
 
             // 4. Close Search
             document.getElementById('searchResults').style.display = 'none';
-
-            // 5. Trigger AI for Summary and Path
-            if(paper.abstract) {
-                runAiCategorization(true); // pass true to indicate it's auto-triggered
-            }
         }
 
-        // --- AI LOGIC (Split into Summary vs Path) ---
-        async function runAiCategorization(isAuto = false) {
-            const abstract = document.getElementById('abstractText').value;
-            const title = document.getElementById('title').value;
-            if(!abstract && !title) return alert("Fill Title/Abstract first.");
-
-            const button = document.querySelector('button[onclick="runAiCategorization()"]');
-            if(!isAuto) button.textContent = "⏳...";
-
-            const prompt = `
-            Based on Title: "${title}" and Abstract: "${abstract.substring(0, 500)}...", 
-            suggest a folder path (e.g. machine_learning/transformers). 
-            Return JSON: {"path": "string", "summary": "string"}. 
-            Also generate a 1-sentence summary.
-            `;
-            
-            await callGemini(prompt, (result) => {
-                document.getElementById('path').value = (result.path || "uncategorized").toLowerCase().replace(/ /g, '_');
-                document.getElementById('summary').value = result.summary || "";
-                if(!isAuto) button.textContent = "✨ AI Path";
-            });
-        }
-
+        // --- AI LOGIC (Summary Only) ---
         async function runAiSummary() {
             const abstract = document.getElementById('abstractText').value;
             if(!abstract) return alert("No abstract to summarize.");
             
             const button = document.querySelector('button[onclick="runAiSummary()"]');
+            const originalText = button.textContent;
             button.textContent = "⏳...";
 
             const prompt = `Summarize this in one insightful sentence: "${abstract.substring(0, 1000)}..." Return JSON: {"summary": "string"}`;
             
             await callGemini(prompt, (result) => {
                 document.getElementById('summary').value = result.summary;
-                button.textContent = "✨ AI Summarize";
+                button.textContent = originalText;
             });
         }
 
